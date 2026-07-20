@@ -1,0 +1,12 @@
+{
+  "domain": "sunsight",
+  "name": "SunSight",
+  "codeowners": ["@dgaust"],
+  "config_flow": true,
+  "documentation": "https://github.com/dgaust/sunsight",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/dgaust/sunsight/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

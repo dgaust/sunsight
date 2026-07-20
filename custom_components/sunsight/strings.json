@@ -1,0 +1,71 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "SunSight",
+        "description": "Every source is optional — SunSight uses whatever you have. Leave a field empty to skip the sensors that depend on it.",
+        "data": {
+          "name": "Name",
+          "window_lux_entity": "Window light sensor",
+          "window_azimuth_min": "Window azimuth from",
+          "window_azimuth_max": "Window azimuth to",
+          "window_lux_threshold": "Direct sun threshold",
+          "irradiance_entity": "Outdoor solar irradiance",
+          "pv_power_entity": "Solar PV power",
+          "pv_clip_kw": "PV clipping ceiling",
+          "rain_entity": "Rain sensor",
+          "forecast_outlook_entity": "Forecast outlook",
+          "forecast_rain_chance_entity": "Forecast rain chance",
+          "clear_threshold": "Clear sky threshold",
+          "min_elevation": "Minimum sun elevation",
+          "temperature_entity": "Outdoor temperature",
+          "humidity_entity": "Outdoor humidity",
+          "wind_speed_entity": "Wind speed",
+          "pressure_entity": "Atmospheric pressure",
+          "wind_height_m": "Anemometer height"
+        },
+        "data_description": {
+          "window_lux_entity": "A light sensor on the window frame, used to detect direct sun striking the glass.",
+          "window_azimuth_min": "Start of the compass range over which the sun can reach this window (0=N, 90=E, 180=S, 270=W).",
+          "window_azimuth_max": "End of that range. A range may wrap through north.",
+          "window_lux_threshold": "Illuminance above which direct sun is assumed. Set it between your diffuse daylight level and your direct-beam peaks.",
+          "irradiance_entity": "A pyranometer or weather-station solar sensor in W/m². The most direct measure of sky clarity.",
+          "pv_power_entity": "Total array power in kW. Used as a second, independent clear-sky signal.",
+          "pv_clip_kw": "Peak output your system can produce. Readings at this level are treated as clipped rather than as an exact ratio.",
+          "rain_entity": "Wet means direct sun is impossible, so it vetoes detection. An unavailable sensor never vetoes.",
+          "forecast_outlook_entity": "A sensor whose state is a word like sunny or shower.",
+          "forecast_rain_chance_entity": "Rain probability for today, as a percentage.",
+          "clear_threshold": "Percentage of clear-sky potential above which the sky counts as clear.",
+          "min_elevation": "Sun must be at least this high for fine weather to be reported, which skips dim twilight.",
+          "temperature_entity": "Outdoor air temperature. Needed, with humidity, wind and pressure, for evapotranspiration.",
+          "humidity_entity": "Outdoor relative humidity.",
+          "wind_speed_entity": "Wind speed. Evapotranspiration is sensitive to this, so prefer a station over a forecast.",
+          "pressure_entity": "Station (absolute) pressure, not the sea-level adjusted figure.",
+          "wind_height_m": "Height your anemometer is mounted at. Readings are corrected to the 2 m reference height."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SunSight options",
+        "description": "Change any setting. Clearing an entity field disables the sensors that depend on it.",
+        "data": {
+          "window_lux_entity": "Window light sensor",
+          "window_azimuth_min": "Window azimuth from",
+          "window_azimuth_max": "Window azimuth to",
+          "window_lux_threshold": "Direct sun threshold",
+          "irradiance_entity": "Outdoor solar irradiance",
+          "pv_power_entity": "Solar PV power",
+          "pv_clip_kw": "PV clipping ceiling",
+          "rain_entity": "Rain sensor",
+          "forecast_outlook_entity": "Forecast outlook",
+          "forecast_rain_chance_entity": "Forecast rain chance",
+          "clear_threshold": "Clear sky threshold",
+          "min_elevation": "Minimum sun elevation"
+        }
+      }
+    }
+  }
+}
