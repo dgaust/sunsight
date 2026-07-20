@@ -23,16 +23,22 @@ def clear_sky_ghi(elevation_deg: float) -> float:
     return HAURWITZ_A * sin_h * math.exp(-HAURWITZ_B / sin_h)
 
 
-def clear_sky_index(measured_wm2: float, elevation_deg: float) -> float | None:
+def clear_sky_index(measured_wm2: float, elevation_deg: float) -> float:
     """Measured irradiance as a percentage of the clear-sky expectation.
 
-    None when the sun is too low for the model to mean anything. Capped at
-    100: cloud-edge enhancement can genuinely exceed clear-sky irradiance,
-    but reporting >100% "clear" would be more confusing than useful.
+    Returns 0 when the sun is too low for the ratio to mean anything, rather
+    than nothing at all. Overnight there is genuinely no sunlight arriving,
+    and a flat zero keeps history graphs continuous; an entity that goes
+    unknown every night reads as broken even when it is working perfectly.
+    A source sensor that is actually unavailable is a different matter, and
+    callers report that as unknown so real faults stay visible.
+
+    Capped at 100: cloud-edge enhancement can genuinely exceed clear-sky
+    irradiance, but reporting >100% "clear" would confuse more than it helps.
     """
     expected = clear_sky_ghi(elevation_deg)
     if expected <= 0:
-        return None
+        return 0.0
     return min(measured_wm2 / expected * 100.0, 100.0)
 
 

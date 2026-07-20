@@ -61,6 +61,7 @@ class ClearSkyIndex(SunSightEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict:
         return {
+            "status": self.manager.sky_status,
             "irradiance": self.manager._float(self.manager._opt(CONF_IRRADIANCE)),
             "sun_elevation": self.manager.sun_elevation,
         }
@@ -85,6 +86,7 @@ class PVClearSkyIndex(SunSightEntity, SensorEntity):
     def extra_state_attributes(self) -> dict:
         expected = self.manager.pv_expected
         return {
+            "status": self.manager.sky_status,
             "pv_power": self.manager._float(self.manager._opt(CONF_PV_POWER)),
             "expected_clear_sky_power": None if expected is None else round(expected, 2),
             "sun_elevation": self.manager.sun_elevation,

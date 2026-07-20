@@ -214,14 +214,35 @@ class SunSightManager:
     # -- clear sky ------------------------------------------------------
 
     @property
+    def sky_status(self) -> str:
+        """Human-readable reason the indices read what they do.
+
+        Exists because a numeric sensor cannot say "night" in its state, and
+        a bare 0 overnight invites the question of whether it has broken.
+        """
+        elevation = self.sun_elevation
+        if elevation is None:
+            return "Sun position unavailable"
+        if not self.sun_up:
+            return "Night"
+        if elevation < MIN_INDEX_ELEVATION:
+            return "Sun too low to measure"
+        return "Measuring"
+
+    @property
     def clear_sky_index(self) -> float | None:
-        """Percentage of clear-sky irradiance, from a pyranometer/lux station."""
+        """Percentage of clear-sky irradiance, from a pyranometer/lux station.
+
+        None only when a source is genuinely missing - that is a fault worth
+        surfacing. A sun below the measurable threshold reports 0 instead,
+        so the entity stays numeric and continuous overnight.
+        """
         elevation = self.sun_elevation
         measured = self._float(self._opt(CONF_IRRADIANCE))
         if elevation is None or measured is None:
             return None
         if elevation < MIN_INDEX_ELEVATION:
-            return None
+            return 0.0
         return clear_sky_index(measured, elevation)
 
     @property
@@ -233,8 +254,9 @@ class SunSightManager:
         if elevation is None or azimuth is None or power is None:
             return None
         if elevation < PV_MIN_ELEVATION:
-            return None
-        return self.envelope.index(power, elevation, azimuth)
+            return 0.0
+        index = self.envelope.index(power, elevation, azimuth)
+        return 0.0 if index is None else index
 
     @property
     def pv_expected(self) -> float | None:

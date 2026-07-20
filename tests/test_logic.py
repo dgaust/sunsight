@@ -63,7 +63,11 @@ print("\nclear-sky index")
 # morning measuring 64.96 W/m2 with the sun at 20.78 deg.
 index = solar.clear_sky_index(64.96, 20.78)
 check("overcast morning ~20%", 15 < index < 25, f"got {index:.1f}")
-check("low sun -> None", solar.clear_sky_index(10, 1) is None)
+# 0 rather than None below the horizon: an entity that goes unknown every
+# night looks broken, and a flat zero keeps history graphs continuous.
+check("low sun -> 0, not None", solar.clear_sky_index(10, 1) == 0.0)
+check("night -> 0", solar.clear_sky_index(0, -30) == 0.0)
+check("always numeric", isinstance(solar.clear_sky_index(0, -30), float))
 # Cloud-edge enhancement can exceed the clear-sky model; report 100, not 140.
 check("capped at 100", solar.clear_sky_index(2000, 45) == 100.0)
 
