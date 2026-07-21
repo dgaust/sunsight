@@ -96,6 +96,39 @@ STORAGE_KEY: Final = f"{DOMAIN}.pv_envelope"
 STORAGE_VERSION: Final = 1
 SAVE_DELAY: Final = 300
 
+# --- plain-English sunlight description ---------------------------------
+#
+# The numeric index is precise but not readable at a glance, and a bare 0
+# overnight tells you nothing about *why*. These labels describe how much
+# sunlight is actually available.
+#
+# The boundaries are drawn from measured data rather than picked evenly:
+# clear days read 92-96, dry overcast 44-59, and rain 29-30, so the labels
+# line up with conditions that were actually observed.
+
+# Civil twilight. Below this there is no useful daylight at all.
+TWILIGHT_ELEVATION: Final = -6.0
+
+SUNLIGHT_DARKNESS: Final = "Darkness"
+SUNLIGHT_TWILIGHT: Final = "Twilight"
+
+# Ordered high to low; the first threshold the index meets or exceeds wins.
+SUNLIGHT_LEVELS: Final = (
+    (88.0, "Full sunshine"),
+    (75.0, "Hazy sunshine"),
+    (60.0, "Partly cloudy"),
+    (45.0, "Cloudy"),
+    (25.0, "Overcast"),
+    (0.0, "Heavy cloud"),
+)
+
+# Every value the sensor can report, for the enum device class.
+SUNLIGHT_OPTIONS: Final = [
+    SUNLIGHT_DARKNESS,
+    SUNLIGHT_TWILIGHT,
+    *[label for _, label in reversed(SUNLIGHT_LEVELS)],
+]
+
 # --- evapotranspiration -------------------------------------------------
 
 CONF_TEMPERATURE: Final = "temperature_entity"

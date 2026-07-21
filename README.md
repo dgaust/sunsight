@@ -63,10 +63,39 @@ irradiance exceeds horizontal at low sun. The learner discovers that lift on its
 | `binary_sensor.sun_on_window` | window light sensor | Direct sun on the glass |
 | `binary_sensor.fine_outdoor_weather` | any clear-sky source | Daylight, dry, measurably sunny |
 | `binary_sensor.fine_day_expected` | forecast outlook | Today forecast fine |
+| `sensor.sunlight` | nothing (sun position only) | Plain English: Darkness → Full sunshine |
 | `sensor.clear_sky_index` | irradiance sensor | % of clear-sky irradiance |
 | `sensor.pv_clear_sky_index` | PV power sensor | % of the array's clear-sky potential |
 | `sensor.evapotranspiration_rate` | irradiance + temp/humidity/wind/pressure | ET₀ in mm/hour |
 | `sensor.evapotranspiration_today` | as above | ET₀ accumulated since local midnight |
+
+## Plain-English sunlight
+
+The numeric indices are precise but not readable at a glance, and a bare `0`
+overnight doesn't say *why*. `sensor.sunlight` describes the available light
+as one of a fixed vocabulary:
+
+`Darkness` · `Twilight` · `Heavy cloud` · `Overcast` · `Cloudy` ·
+`Partly cloudy` · `Hazy sunshine` · `Full sunshine`
+
+Sun position is checked before the index, so a clear night reads **Darkness**
+rather than "Heavy cloud" — a 0 index at night means no sun, not thick cloud.
+
+The boundaries are drawn from measured conditions rather than spaced evenly.
+Against days whose real weather was known:
+
+| Measured day | Index | Description |
+|---|---|---|
+| Clear | 92–96 | Full sunshine |
+| Broken cloud | 72 | Partly cloudy |
+| Dry overcast | 44–59 | Overcast / Cloudy |
+| Rain | 30 | Overcast |
+| Heavy overcast | 18 | Heavy cloud |
+
+It's a `SensorDeviceClass.ENUM`, so the vocabulary is fixed and safe to use in
+automations and dashboard conditions. Unlike the numeric sensors it needs no
+irradiance or PV source at all — with neither configured it still reports
+Darkness and Twilight from sun position alone.
 
 ## Evapotranspiration
 

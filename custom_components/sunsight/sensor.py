@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.components.sensor import (
+    SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
@@ -18,6 +19,7 @@ from .const import (
     CONF_PV_POWER,
     CONF_TEMPERATURE,
     CONF_WIND_SPEED,
+    SUNLIGHT_OPTIONS,
 )
 from .coordinator import SunSightManager
 from .entity import SunSightEntity
@@ -32,6 +34,9 @@ async def async_setup_entry(
     manager: SunSightManager = entry.runtime_data
 
     entities: list[SunSightEntity] = []
+    # The description works from sun position alone, so it is always useful
+    # even with no irradiance or PV source configured.
+    entities.append(SunlightDescription(manager))
     if manager._opt(CONF_IRRADIANCE):
         entities.append(ClearSkyIndex(manager))
     if manager._opt(CONF_PV_POWER):
@@ -41,6 +46,34 @@ async def async_setup_entry(
         entities.append(EvapotranspirationToday(manager))
 
     async_add_entities(entities)
+
+
+class SunlightDescription(SunSightEntity, SensorEntity):
+    """Plain-English description of available sunlight.
+
+    An enum rather than a free string, so the value is a fixed vocabulary
+    that dashboards and automations can rely on and translations can target.
+    """
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = SUNLIGHT_OPTIONS
+    _attr_icon = "mdi:weather-sunny-alert"
+
+    def __init__(self, manager: SunSightManager) -> None:
+        super().__init__(manager, "sunlight", "Sunlight")
+
+    @property
+    def native_value(self) -> str | None:
+        return self.manager.sunlight_description
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        index = self.manager.best_clear_index
+        return {
+            "clear_sky_index": None if index is None else round(index),
+            "sun_elevation": self.manager.sun_elevation,
+            "status": self.manager.sky_status,
+        }
 
 
 class ClearSkyIndex(SunSightEntity, SensorEntity):

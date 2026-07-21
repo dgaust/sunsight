@@ -71,6 +71,33 @@ check("always numeric", isinstance(solar.clear_sky_index(0, -30), float))
 # Cloud-edge enhancement can exceed the clear-sky model; report 100, not 140.
 check("capped at 100", solar.clear_sky_index(2000, 45) == 100.0)
 
+print("\nsunlight description")
+# Sun position must beat the index: a clear night is not "Heavy cloud".
+check("deep night -> Darkness", solar.describe_sunlight(0.0, -40) == "Darkness")
+check("just below horizon -> Twilight", solar.describe_sunlight(0.0, -3) == "Twilight")
+check("low sun -> Twilight", solar.describe_sunlight(0.0, 2) == "Twilight")
+# Boundaries drawn from measured conditions.
+check("92 (measured clear) -> Full sunshine",
+      solar.describe_sunlight(92, 30) == "Full sunshine")
+check("80 -> Hazy sunshine", solar.describe_sunlight(80, 30) == "Hazy sunshine")
+check("65 -> Partly cloudy", solar.describe_sunlight(65, 30) == "Partly cloudy")
+check("50 (measured dry overcast) -> Cloudy",
+      solar.describe_sunlight(50, 30) == "Cloudy")
+check("30 (measured rain) -> Overcast", solar.describe_sunlight(30, 30) == "Overcast")
+check("18 (heavy overcast) -> Heavy cloud",
+      solar.describe_sunlight(18, 30) == "Heavy cloud")
+check("0 by day -> Heavy cloud", solar.describe_sunlight(0, 30) == "Heavy cloud")
+# No index source at all, but sun is up: say Twilight rather than crash.
+check("index None by day -> Twilight", solar.describe_sunlight(None, 30) == "Twilight")
+# Every reachable value must be declared for the enum device class.
+produced = {solar.describe_sunlight(i, 30) for i in range(0, 101)}
+produced |= {solar.describe_sunlight(0, -40), solar.describe_sunlight(0, 2)}
+check("all outputs are declared options",
+      produced <= set(const.SUNLIGHT_OPTIONS),
+      f"undeclared: {produced - set(const.SUNLIGHT_OPTIONS)}")
+check("options list has no duplicates",
+      len(const.SUNLIGHT_OPTIONS) == len(set(const.SUNLIGHT_OPTIONS)))
+
 print("\nazimuth window")
 check("inside simple range", solar.in_azimuth_window(280, 235, 320))
 check("below simple range", not solar.in_azimuth_window(200, 235, 320))

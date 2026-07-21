@@ -8,7 +8,17 @@ from __future__ import annotations
 
 import math
 
-from .const import HAURWITZ_A, HAURWITZ_B, PV_AZ_BIN, PV_ELEV_BIN
+from .const import (
+    HAURWITZ_A,
+    HAURWITZ_B,
+    MIN_INDEX_ELEVATION,
+    PV_AZ_BIN,
+    PV_ELEV_BIN,
+    SUNLIGHT_DARKNESS,
+    SUNLIGHT_LEVELS,
+    SUNLIGHT_TWILIGHT,
+    TWILIGHT_ELEVATION,
+)
 
 
 def clear_sky_ghi(elevation_deg: float) -> float:
@@ -40,6 +50,25 @@ def clear_sky_index(measured_wm2: float, elevation_deg: float) -> float:
     if expected <= 0:
         return 0.0
     return min(measured_wm2 / expected * 100.0, 100.0)
+
+
+def describe_sunlight(index: float | None, elevation_deg: float) -> str:
+    """Plain-English description of how much sunlight is available.
+
+    Sun position is checked before the index, because below the horizon the
+    index is 0 for a reason that has nothing to do with cloud: describing a
+    clear night as "Heavy cloud" would be actively wrong.
+    """
+    if elevation_deg < TWILIGHT_ELEVATION:
+        return SUNLIGHT_DARKNESS
+    if elevation_deg < MIN_INDEX_ELEVATION:
+        return SUNLIGHT_TWILIGHT
+    if index is None:
+        return SUNLIGHT_TWILIGHT
+    for threshold, label in SUNLIGHT_LEVELS:
+        if index >= threshold:
+            return label
+    return SUNLIGHT_LEVELS[-1][1]
 
 
 def sun_bin(elevation_deg: float, azimuth_deg: float) -> tuple[int, int]:

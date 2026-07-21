@@ -54,7 +54,12 @@ from .const import (
 )
 from .evapotranspiration import eto_hourly
 from .pv_envelope import PVEnvelope
-from .solar import clear_sky_ghi, clear_sky_index, in_azimuth_window
+from .solar import (
+    clear_sky_ghi,
+    clear_sky_index,
+    describe_sunlight,
+    in_azimuth_window,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -277,6 +282,19 @@ class SunSightManager:
             return
         self.envelope.observe(power, elevation, azimuth)
         self._store.async_delay_save(self._storage_payload, SAVE_DELAY)
+
+    @property
+    def sunlight_description(self) -> str | None:
+        """Plain-English sunlight level, e.g. Darkness or Full sunshine.
+
+        None only when sun position is unknown; unlike the numeric indices
+        this stays useful without any irradiance or PV source, because at
+        night the answer depends on the sun alone.
+        """
+        elevation = self.sun_elevation
+        if elevation is None:
+            return None
+        return describe_sunlight(self.best_clear_index, elevation)
 
     @property
     def best_clear_index(self) -> float | None:
