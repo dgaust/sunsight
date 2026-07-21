@@ -1,0 +1,488 @@
+{
+  "Ecowitt Gateway": {
+    "entities": [
+      {
+        "device_class": "connectivity",
+        "entity_id": "binary_sensor.ecowitt_gateway_gw2000c_online",
+        "name": "Ecowitt Gateway Online",
+        "state": "on",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": "humidity",
+        "entity_id": "sensor.ecowitt_humidity_humidityin",
+        "name": "Ecowitt Gateway Indoor Humidity",
+        "state": "39",
+        "state_class": "measurement",
+        "unit": "%"
+      },
+      {
+        "device_class": "atmospheric_pressure",
+        "entity_id": "sensor.ecowitt_pressure_absolute",
+        "name": "Ecowitt Gateway Absolute Pressure",
+        "state": "1031.2",
+        "state_class": null,
+        "unit": "hPa"
+      },
+      {
+        "device_class": "atmospheric_pressure",
+        "entity_id": "sensor.ecowitt_pressure_relative",
+        "name": "Ecowitt Gateway Relative Pressure",
+        "state": "1031.2",
+        "state_class": null,
+        "unit": "hPa"
+      },
+      {
+        "device_class": "temperature",
+        "entity_id": "sensor.ecowitt_temperature_indoor",
+        "name": "Ecowitt Gateway Indoor Temperature",
+        "state": "26.0",
+        "state_class": "measurement",
+        "unit": "\u00b0C"
+      }
+    ],
+    "model": "GW2000C",
+    "via_device": null
+  },
+  "Ecowitt Rain Sensor": {
+    "entities": [
+      {
+        "device_class": "connectivity",
+        "entity_id": "binary_sensor.ecowitt_sensor_11c87_online",
+        "name": "Ecowitt Rain Sensor Ecowitt Sensor 11C87 Online",
+        "state": "on",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_24h_rain_11c87",
+        "name": "Ecowitt Rain Sensor 24-Hour Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_daily_rain_11c87",
+        "name": "Ecowitt Rain Sensor Daily Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_hardware_id_11c87",
+        "name": "Ecowitt Rain Sensor Hardware ID",
+        "state": "11C87",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_hourly_rain_11c87",
+        "name": "Ecowitt Rain Sensor Hourly Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_monthly_rain_11c87",
+        "name": "Ecowitt Rain Sensor Monthly Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      },
+      {
+        "device_class": "battery",
+        "entity_id": "sensor.ecowitt_rain_battery_11c87",
+        "name": "Ecowitt Rain Sensor Rain Sensor Battery",
+        "state": "80",
+        "state_class": "measurement",
+        "unit": "%"
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_rain_event_11c87",
+        "name": "Ecowitt Rain Sensor Rain Event",
+        "state": "0.0",
+        "state_class": "total",
+        "unit": "mm"
+      },
+      {
+        "device_class": "precipitation_intensity",
+        "entity_id": "sensor.ecowitt_rain_rate_11c87",
+        "name": "Ecowitt Rain Sensor Rain Rate",
+        "state": "0.0",
+        "state_class": "measurement",
+        "unit": "mm/h"
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_signal_strength_11c87",
+        "name": "Ecowitt Rain Sensor Signal Strength",
+        "state": "100",
+        "state_class": null,
+        "unit": "%"
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_weekly_rain_11c87",
+        "name": "Ecowitt Rain Sensor Weekly Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_yearly_rain_11c87",
+        "name": "Ecowitt Rain Sensor Yearly Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      }
+    ],
+    "model": "wh40",
+    "via_device": "Ecowitt Gateway"
+  },
+  "Ecowitt Soil Moisture Sensor D42E2": {
+    "entities": [
+      {
+        "device_class": "connectivity",
+        "entity_id": "binary_sensor.ecowitt_soil_moisture_d42e2_online",
+        "name": "Ecowitt Soil Moisture Sensor D42E2 Ecowitt Soil Moisture D42E2 Online",
+        "state": "on",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_channel_d42e2",
+        "name": "Ecowitt Soil Moisture Sensor D42E2 Channel",
+        "state": "1",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_hardware_id_d42e2",
+        "name": "Ecowitt Soil Moisture Sensor D42E2 Hardware ID",
+        "state": "D42E2",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_signal_strength_d42e2",
+        "name": "Ecowitt Soil Moisture Sensor D42E2 Signal Strength",
+        "state": "100",
+        "state_class": null,
+        "unit": "%"
+      },
+      {
+        "device_class": "battery",
+        "entity_id": "sensor.ecowitt_soil_moisture_battery_d42e2",
+        "name": "Ecowitt Soil Moisture Sensor D42E2 Soil Moisture CH1 Battery",
+        "state": "10",
+        "state_class": "measurement",
+        "unit": "%"
+      },
+      {
+        "device_class": "moisture",
+        "entity_id": "sensor.ecowitt_soil_moisture_d42e2",
+        "name": "Ecowitt Soil Moisture Sensor D42E2 Soil Moisture CH1",
+        "state": "19",
+        "state_class": "measurement",
+        "unit": "%"
+      }
+    ],
+    "model": "wh51",
+    "via_device": "Ecowitt Gateway"
+  },
+  "Ecowitt Soil Moisture Sensor D431A": {
+    "entities": [
+      {
+        "device_class": "connectivity",
+        "entity_id": "binary_sensor.ecowitt_soil_moisture_d431a_online",
+        "name": "Ecowitt Soil Moisture Sensor D431A Ecowitt Soil Moisture D431A Online",
+        "state": "on",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_channel_d431a",
+        "name": "Ecowitt Soil Moisture Sensor D431A Channel",
+        "state": "2",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_hardware_id_d431a",
+        "name": "Ecowitt Soil Moisture Sensor D431A Hardware ID",
+        "state": "D431A",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_signal_strength_d431a",
+        "name": "Ecowitt Soil Moisture Sensor D431A Signal Strength",
+        "state": "100",
+        "state_class": null,
+        "unit": "%"
+      },
+      {
+        "device_class": "battery",
+        "entity_id": "sensor.ecowitt_soil_moisture_battery_d431a",
+        "name": "Ecowitt Soil Moisture Sensor D431A Soil Moisture CH2 Battery",
+        "state": "10",
+        "state_class": "measurement",
+        "unit": "%"
+      },
+      {
+        "device_class": "moisture",
+        "entity_id": "sensor.ecowitt_soil_moisture_d431a",
+        "name": "Ecowitt Soil Moisture Sensor D431A Soil Moisture CH2",
+        "state": "50",
+        "state_class": "measurement",
+        "unit": "%"
+      }
+    ],
+    "model": "wh51",
+    "via_device": "Ecowitt Gateway"
+  },
+  "Ecowitt Weather Station": {
+    "entities": [
+      {
+        "device_class": "moisture",
+        "entity_id": "binary_sensor.ecowitt_rain_13360",
+        "name": "Ecowitt Weather Station Srain Piezo",
+        "state": "off",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": "connectivity",
+        "entity_id": "binary_sensor.outdoors_ecowitt_weather_station_online",
+        "name": "Ecowitt Weather Station Online",
+        "state": "on",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_24h_rain_13360",
+        "name": "Ecowitt Weather Station 24-Hour Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      },
+      {
+        "device_class": "battery",
+        "entity_id": "sensor.ecowitt_battery_13360",
+        "name": "Ecowitt Weather Station WH90 Weather Station Battery",
+        "state": "100",
+        "state_class": "measurement",
+        "unit": "%"
+      },
+      {
+        "device_class": "voltage",
+        "entity_id": "sensor.ecowitt_capacitor_voltage_13360",
+        "name": "Ecowitt Weather Station WH90 Capacitor Voltage",
+        "state": "0.3",
+        "state_class": "measurement",
+        "unit": "V"
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_daily_rain_13360",
+        "name": "Ecowitt Weather Station Daily Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      },
+      {
+        "device_class": "temperature",
+        "entity_id": "sensor.ecowitt_dewpoint_13360",
+        "name": "Ecowitt Weather Station Dewpoint Temperature",
+        "state": "9.7",
+        "state_class": "measurement",
+        "unit": "\u00b0C"
+      },
+      {
+        "device_class": "temperature",
+        "entity_id": "sensor.ecowitt_feels_like_temp_13360",
+        "name": "Ecowitt Weather Station Feels Like Temperature",
+        "state": "13.4",
+        "state_class": "measurement",
+        "unit": "\u00b0C"
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_hardware_id_13360",
+        "name": "Ecowitt Weather Station Hardware ID",
+        "state": "13360",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_hourly_rain_13360",
+        "name": "Ecowitt Weather Station Hourly Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      },
+      {
+        "device_class": "wind_speed",
+        "entity_id": "sensor.ecowitt_max_daily_gust_13360",
+        "name": "Ecowitt Weather Station Max Daily Gust",
+        "state": "6.84",
+        "state_class": "measurement",
+        "unit": "km/h"
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_monthly_rain_13360",
+        "name": "Ecowitt Weather Station Monthly Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      },
+      {
+        "device_class": "humidity",
+        "entity_id": "sensor.ecowitt_outdoor_humidity_13360",
+        "name": "Ecowitt Weather Station Outdoor Humidity",
+        "state": "78",
+        "state_class": "measurement",
+        "unit": "%"
+      },
+      {
+        "device_class": "temperature",
+        "entity_id": "sensor.ecowitt_outdoor_temp_13360",
+        "name": "Ecowitt Weather Station Outdoor Temperature",
+        "state": "13.4",
+        "state_class": "measurement",
+        "unit": "\u00b0C"
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_rain_event_13360",
+        "name": "Ecowitt Weather Station Rain Event",
+        "state": "0.0",
+        "state_class": "total",
+        "unit": "mm"
+      },
+      {
+        "device_class": "precipitation_intensity",
+        "entity_id": "sensor.ecowitt_rain_rate_13360",
+        "name": "Ecowitt Weather Station Rain Rate",
+        "state": "0.0",
+        "state_class": "measurement",
+        "unit": "mm/h"
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_signal_strength_13360",
+        "name": "Ecowitt Weather Station Signal Strength",
+        "state": "100",
+        "state_class": null,
+        "unit": "%"
+      },
+      {
+        "device_class": "illuminance",
+        "entity_id": "sensor.ecowitt_solar_lux_13360",
+        "name": "Ecowitt Weather Station Solar Illuminance",
+        "state": "5199.8",
+        "state_class": "measurement",
+        "unit": "lx"
+      },
+      {
+        "device_class": "irradiance",
+        "entity_id": "sensor.ecowitt_solar_radiation_13360",
+        "name": "Ecowitt Weather Station Solar Radiation",
+        "state": "41.04",
+        "state_class": "measurement",
+        "unit": "W/m\u00b2"
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_uv_index_13360",
+        "name": "Ecowitt Weather Station UV Index",
+        "state": "0",
+        "state_class": null,
+        "unit": "UV Index"
+      },
+      {
+        "device_class": "voltage",
+        "entity_id": "sensor.ecowitt_voltage_13360",
+        "name": "Ecowitt Weather Station WH90 Battery Voltage",
+        "state": "3.14",
+        "state_class": "measurement",
+        "unit": "V"
+      },
+      {
+        "device_class": "pressure",
+        "entity_id": "sensor.ecowitt_vpd_13360",
+        "name": "Ecowitt Weather Station Vapor Pressure Deficit",
+        "state": "0.338",
+        "state_class": "measurement",
+        "unit": "kPa"
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_weekly_rain_13360",
+        "name": "Ecowitt Weather Station Weekly Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_wind_direction_13360",
+        "name": "Ecowitt Weather Station Wind Direction",
+        "state": "53",
+        "state_class": "measurement_angle",
+        "unit": "\u00b0"
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.ecowitt_wind_direction_avg_13360",
+        "name": "Ecowitt Weather Station Wind Direction Avg",
+        "state": "53",
+        "state_class": "measurement_angle",
+        "unit": "\u00b0"
+      },
+      {
+        "device_class": "wind_speed",
+        "entity_id": "sensor.ecowitt_wind_gust_13360",
+        "name": "Ecowitt Weather Station Wind Gust",
+        "state": "0.0",
+        "state_class": "measurement",
+        "unit": "km/h"
+      },
+      {
+        "device_class": "wind_speed",
+        "entity_id": "sensor.ecowitt_wind_speed_13360",
+        "name": "Ecowitt Weather Station Wind Speed",
+        "state": "0.0",
+        "state_class": "measurement",
+        "unit": "km/h"
+      },
+      {
+        "device_class": "precipitation",
+        "entity_id": "sensor.ecowitt_yearly_rain_13360",
+        "name": "Ecowitt Weather Station Yearly Rain",
+        "state": "0.0",
+        "state_class": "total_increasing",
+        "unit": "mm"
+      }
+    ],
+    "model": "wh90",
+    "via_device": "Ecowitt Gateway"
+  }
+}

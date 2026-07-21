@@ -14,6 +14,12 @@ DOMAIN: Final = "sunsight"
 
 PLATFORMS: Final = ["binary_sensor", "sensor"]
 
+# Mirrors CARD_VERSION in www/ecowitt-cards.js. The two must be bumped
+# together: this copy is the ?v= cache-buster on the auto-loaded URL, so
+# leaving it stale means browsers keep serving the old card.
+CARD_VERSION: Final = "1.21.0"
+CARD_FILENAME: Final = "ecowitt-cards.js"
+
 # --- configuration keys -------------------------------------------------
 
 CONF_WINDOW_LUX: Final = "window_lux_entity"

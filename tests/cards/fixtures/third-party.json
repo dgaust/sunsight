@@ -1,0 +1,80 @@
+{
+  "Tuya TS0601 soil probe": {
+    "entities": [
+      {
+        "device_class": "battery",
+        "entity_id": "binary_sensor.outdoors_sunflower_moisture_battery_plus_low",
+        "name": "Outdoors - Sunflower Moisture Battery low",
+        "state": "off",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": null,
+        "entity_id": "button.outdoors_sunflower_moisture_battery_replaced",
+        "name": "Outdoors - Sunflower Moisture Battery replaced",
+        "state": "2026-04-06T04:10:39.774413+00:00",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": "battery",
+        "entity_id": "sensor.outdoors_sunflower_moisture_battery",
+        "name": "Outdoors - Sunflower Moisture Battery",
+        "state": "32.0",
+        "state_class": "measurement",
+        "unit": "%"
+      },
+      {
+        "device_class": "timestamp",
+        "entity_id": "sensor.outdoors_sunflower_moisture_battery_last_replaced",
+        "name": "Outdoors - Sunflower Moisture Battery last replaced",
+        "state": "2026-04-06T04:10:39+00:00",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": "battery",
+        "entity_id": "sensor.outdoors_sunflower_moisture_battery_plus",
+        "name": "Outdoors - Sunflower Moisture Battery+",
+        "state": "32.0",
+        "state_class": "measurement",
+        "unit": "%"
+      },
+      {
+        "device_class": null,
+        "entity_id": "sensor.outdoors_sunflower_moisture_battery_type",
+        "name": "Outdoors - Sunflower Moisture Battery type",
+        "state": "2\u00d7 AAA",
+        "state_class": null,
+        "unit": null
+      },
+      {
+        "device_class": "moisture",
+        "entity_id": "sensor.outdoors_sunflower_moisture_soil_moisture",
+        "name": "Outdoors - Rear Garden Pots",
+        "state": "82.0",
+        "state_class": "measurement",
+        "unit": "%"
+      },
+      {
+        "device_class": "temperature",
+        "entity_id": "sensor.outdoors_sunflower_moisture_temperature",
+        "name": "Outdoors - Sunflower Moisture Temperature",
+        "state": "17.4",
+        "state_class": "measurement",
+        "unit": "\u00b0C"
+      },
+      {
+        "device_class": "firmware",
+        "entity_id": "update.outdoors_sunflower_moisture_firmware",
+        "name": "Outdoors - Sunflower Moisture Firmware",
+        "state": "unknown",
+        "state_class": null,
+        "unit": null
+      }
+    ],
+    "model": "TS0601",
+    "via_device": null
+  }
+}

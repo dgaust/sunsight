@@ -211,6 +211,26 @@ saturated = et.eto_hourly(
 )
 check("100% humidity at night -> 0", saturated == 0.0, f"got {saturated:.4f}")
 
+print("\ncard packaging")
+# The card is served from inside the integration, so HACS ships it with the
+# integration download - it must actually be there.
+_card = os.path.join(CC, "www", const.CARD_FILENAME)
+check("card file is present", os.path.isfile(_card), _card)
+# const.CARD_VERSION is the ?v= cache-buster. If it drifts from the version
+# baked into the card, browsers keep serving a stale module.
+if os.path.isfile(_card):
+    import re
+
+    _src = open(_card, encoding="utf-8").read()
+    _m = re.search(r'CARD_VERSION\s*=\s*"([^"]+)"', _src)
+    check("card declares a version", _m is not None)
+    if _m:
+        check(
+            "const.py CARD_VERSION matches the card",
+            _m.group(1) == const.CARD_VERSION,
+            f"card={_m.group(1)} const={const.CARD_VERSION}",
+        )
+
 print()
 if failures:
     print(f"{len(failures)} FAILURE(S): {failures}")

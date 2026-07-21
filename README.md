@@ -127,10 +127,42 @@ beam detection. When both irradiance and PV are available, irradiance is
 preferred for "fine weather" because it measures the sky directly, while PV is an
 inference through hardware that can clip, soil, or be shaded.
 
+## Lovelace cards
+
+SunSight bundles a set of dependency-free Lovelace cards for Ecowitt weather
+stations — a station overview plus focused wind, rain, solar, soil and indoor
+cards. See **[docs/cards.md](docs/cards.md)**.
+
+There is nothing extra to install and no Lovelace resource to add: the
+integration serves the cards at `/sunsight/ecowitt-cards.js` and registers
+them with the frontend automatically, with a `?v=` cache-buster so an update
+can't leave a stale module behind. Registration is best-effort and never
+blocks setup — if it fails, the log says how to add the resource by hand.
+
+The cards work with any entities, so SunSight's own sensors drop straight into
+the weather card as tiles:
+
+```yaml
+type: custom:ecowitt-weather-card
+device: <your station>
+metrics:
+  - entity: sensor.sunsight_sunlight
+    name: Sky
+  - entity: sensor.sunsight_clear_sky_index
+    name: Clear sky
+  - uv
+  - solar_rad
+```
+
 ## Installation
 
-Copy `custom_components/sunsight` into your Home Assistant `config/custom_components`
-directory and restart, then add it via **Settings → Devices & Services → Add Integration**.
+**HACS** — add `https://github.com/dgaust/sunsight` as a custom repository of
+type *Integration*, install, and restart. The cards come with it.
+
+**Manual** — copy `custom_components/sunsight` into your Home Assistant
+`config/custom_components` directory and restart.
+
+Then add it via **Settings → Devices & Services → Add Integration → SunSight**.
 
 ## Configuration notes
 

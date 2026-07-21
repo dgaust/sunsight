@@ -1,0 +1,308 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Ecowitt cards preview</title>
+  <style>
+    /* A minimal stand-in for the Home Assistant theme variables the cards use. */
+    :root {
+      --primary-text-color: #212121;
+      --secondary-text-color: #727272;
+      --disabled-color: #bdbdbd;
+      --divider-color: #e0e0e0;
+      --primary-color: #03a9f4;
+      --card-background-color: #fff;
+      --secondary-background-color: #f5f5f5;
+      --success-color: #4caf50;
+      --warning-color: #ff9800;
+      --error-color: #f44336;
+      --info-color: #039be5;
+      --ha-card-border-radius: 12px;
+      --page-bg: #fafafa;
+
+      /* Home Assistant's typography tokens, copied from the frontend so the
+       * preview renders at the same sizes the cards get in HA. */
+      --ha-font-size-scale: 1;
+      --ha-font-size-xs: calc(10px * var(--ha-font-size-scale));
+      --ha-font-size-s: calc(12px * var(--ha-font-size-scale));
+      --ha-font-size-m: calc(14px * var(--ha-font-size-scale));
+      --ha-font-size-l: calc(16px * var(--ha-font-size-scale));
+      --ha-font-size-xl: calc(20px * var(--ha-font-size-scale));
+      --ha-font-size-2xl: calc(24px * var(--ha-font-size-scale));
+      --ha-font-size-3xl: calc(28px * var(--ha-font-size-scale));
+      --ha-font-size-4xl: calc(32px * var(--ha-font-size-scale));
+      --ha-font-size-5xl: calc(40px * var(--ha-font-size-scale));
+      --ha-font-weight-light: 300;
+      --ha-font-weight-normal: 400;
+      --ha-font-weight-medium: 500;
+      --ha-font-weight-bold: 700;
+      --ha-line-height-condensed: 1.2;
+      --ha-line-height-normal: 1.6;
+      --ha-font-family-body: Roboto, Noto, sans-serif;
+      --ha-border-radius-sm: 4px;
+      --ha-border-radius-md: 8px;
+      --ha-border-radius-lg: 12px;
+      --ha-border-radius-xl: 16px;
+      --ha-border-radius-pill: 9999px;
+      --ha-border-radius-circle: 50%;
+      --ha-space-1: 4px;
+      --ha-space-2: 8px;
+      --ha-space-3: 12px;
+      --ha-space-4: 16px;
+      --ha-space-5: 20px;
+      --ha-space-6: 24px;
+    }
+    body.dark {
+      --primary-text-color: #e1e1e1;
+      --secondary-text-color: #9b9b9b;
+      --disabled-color: #6f6f6f;
+      --divider-color: #3f3f3f;
+      --card-background-color: #1c1c1c;
+      --secondary-background-color: #282828;
+      --page-bg: #111;
+    }
+    body {
+      margin: 0; padding: 24px;
+      background: var(--page-bg);
+      font-family: var(--ha-font-family-body);
+      color: var(--primary-text-color);
+    }
+    .wrap {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      max-width: 1120px;
+    }
+    h1 { font-size: 1.1rem; font-weight: 500; margin: 0 0 16px; }
+    button { margin-bottom: 16px; padding: 6px 12px; }
+  </style>
+</head>
+<body>
+  <h1>Ecowitt cards — preview (fixture data)</h1>
+  <button id="theme">Toggle dark</button>
+  <button id="scale">Font scale: 1</button>
+  <div class="wrap" id="wrap"></div>
+
+  <h1 style="margin-top:32px">Weather card editor (live)</h1>
+  <div class="wrap" id="editorwrap">
+    <div id="editorhost" style="background:var(--card-background-color);
+         border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.12)"></div>
+    <div id="editorpreview"></div>
+  </div>
+
+  <h1 style="margin-top:32px">Soil card editor — scale (live)</h1>
+  <div class="wrap" id="scalewrap">
+    <div id="scalehost" style="background:var(--card-background-color);
+         border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.12)"></div>
+    <div id="scalepreview"></div>
+  </div>
+
+  <script>
+    /* Stand-ins for the two HA elements the cards rely on. */
+    customElements.define("ha-card", class extends HTMLElement {
+      connectedCallback() {
+        this.style.display = "block";
+        this.style.background = "var(--card-background-color)";
+        this.style.borderRadius = "var(--ha-card-border-radius)";
+        this.style.boxShadow = "0 1px 3px rgba(0,0,0,.12)";
+      }
+    });
+    /* Stand-in for the frontend's generic selector, enough to drive the
+     * custom-entity picker: a plain input that emits value-changed. */
+    customElements.define("ha-selector", class extends HTMLElement {
+      set selector(v) { this._selector = v; this._render(); }
+      set hass(v) { this._hass = v; }
+      set value(v) { this._value = v; if (this._input) this._input.value = v || ""; }
+      get value() { return this._value; }
+      _render() {
+        if (this._input) return;
+        this._input = document.createElement("input");
+        this._input.type = "text";
+        this._input.placeholder = "entity id";
+        this._input.style.cssText = "width:100%;background:none;border:1px solid var(--divider-color);color:inherit;font:inherit;padding:4px;border-radius:4px";
+        this._input.value = this._value || "";
+        this._input.addEventListener("change", () => {
+          this._value = this._input.value;
+          this.dispatchEvent(new CustomEvent("value-changed", {
+            detail: { value: this._input.value }, bubbles: true, composed: true,
+          }));
+        });
+        this.appendChild(this._input);
+      }
+    });
+
+    /* ha-form is a no-op here; the editor's own markup is what we exercise. */
+    customElements.define("ha-form", class extends HTMLElement {
+      connectedCallback() {
+        this.style.display = "block";
+        this.style.padding = "8px 0";
+        this.style.color = "var(--secondary-text-color)";
+        this.style.font = "12px Roboto, sans-serif";
+        this.textContent = "[ha-form: device + name]";
+      }
+    });
+    customElements.define("ha-icon", class extends HTMLElement {
+      connectedCallback() {
+        this.style.display = "inline-block";
+        this.style.width = "15px";
+        this.style.height = "15px";
+        this.style.borderRadius = "3px";
+        this.style.background = "currentColor";
+        this.style.opacity = ".35";
+        this.style.verticalAlign = "-2px";
+      }
+    });
+  </script>
+  <script>
+    (async () => {
+      /* Load the card file with a cache-buster. A plain <script src> gets
+       * served from cache after an edit, which silently tests the previous
+       * build — - and looks exactly like a fix that did not work. */
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "../../custom_components/sunsight/www/ecowitt-cards.js?t=" + Date.now();
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+
+      const dump = await (await fetch("./fixtures/devices.json?t=" + Date.now())).json();
+
+      const hass = { states: {}, entities: {}, devices: {} };
+      const byName = {};
+      let n = 0;
+      for (const [devName, info] of Object.entries(dump)) {
+        const id = "dev" + ++n;
+        byName[devName] = id;
+        hass.devices[id] = { id, name: devName, _via: info.via_device };
+        for (const e of info.entities) {
+          hass.entities[e.entity_id] = { device_id: id };
+          hass.states[e.entity_id] = {
+            state: e.state,
+            attributes: {
+              friendly_name: e.name,
+              unit_of_measurement: e.unit,
+              device_class: e.device_class,
+            },
+          };
+        }
+      }
+
+      /* Resolve via_device names to ids, matching hass.devices' real shape.
+       * Hub metrics like pressure depend on this link. */
+      for (const dev of Object.values(hass.devices)) {
+        dev.via_device_id = dev._via ? byName[dev._via] : null;
+        delete dev._via;
+      }
+
+      /* Nudge a few values off their calm real-world readings so the
+       * dynamic parts (wind needle, UV band, rain bars) are visible. */
+      const set = (id, v) => { if (hass.states[id]) hass.states[id].state = v; };
+      set("sensor.ecowitt_wind_speed_13360", "18.4");
+      set("sensor.ecowitt_wind_gust_13360", "27.9");
+      set("sensor.ecowitt_max_daily_gust_13360", "41.2");
+      set("sensor.ecowitt_uv_index_13360", "7");
+      set("sensor.ecowitt_solar_radiation_13360", "612");
+      set("sensor.ecowitt_solar_lux_13360", "74300");
+      set("sensor.ecowitt_rain_rate_13360", "3.2");
+      set("sensor.ecowitt_hourly_rain_13360", "2.4");
+      set("sensor.ecowitt_daily_rain_13360", "11.8");
+      set("sensor.ecowitt_24h_rain_13360", "14.2");
+      set("sensor.ecowitt_weekly_rain_13360", "23.6");
+      set("sensor.ecowitt_monthly_rain_13360", "61.4");
+      set("sensor.ecowitt_yearly_rain_13360", "402.8");
+      set("sensor.ecowitt_rain_event_13360", "11.8");
+      set("binary_sensor.ecowitt_rain_13360", "on");
+
+      const wsId = byName["Ecowitt Weather Station"];
+      const gwId = byName["Ecowitt Gateway"];
+      const wh40Id = byName["Ecowitt Rain Sensor"];
+      const soilCh1 = byName["Ecowitt Soil Moisture Sensor D42E2"];
+      const soilCh2 = byName["Ecowitt Soil Moisture Sensor D431A"];
+
+      /* Two rain cards on purpose: the WS90's piezo and the WH40 tipping
+       * bucket are independent sources, and the card has to read both. */
+      const cards = [
+        ["ecowitt-weather-card", wsId],
+        ["ecowitt-wind-card", wsId],
+        ["ecowitt-rain-card", wsId],
+        ["ecowitt-rain-card", wh40Id],
+        ["ecowitt-solar-card", wsId],
+        ["ecowitt-soil-card", soilCh1],
+        ["ecowitt-soil-card", soilCh2],
+        ["ecowitt-indoor-card", gwId],
+      ];
+
+      /* A device with no Ecowitt entities, to keep the empty state honest. */
+      cards.push(["ecowitt-wind-card", "device-that-does-not-exist"]);
+
+      const wrap = document.getElementById("wrap");
+      for (const [tag, device] of cards) {
+        const el = document.createElement(tag);
+        el.setConfig({ type: "custom:" + tag, device });
+        el.hass = hass;
+        wrap.appendChild(el);
+      }
+
+      window.__hass = hass; // handy when poking at the cards from devtools
+
+      /* Live editor: config-changed drives a real weather card beside it,
+       * so add / remove / reorder can be exercised end to end. */
+      let editorConfig = { type: "custom:ecowitt-weather-card", device: wsId };
+      const editor = document.createElement("ecowitt-weather-card-editor");
+      const preview = document.createElement("ecowitt-weather-card");
+      const mount = () => {
+        preview.setConfig(editorConfig);
+        preview.hass = hass;
+      };
+      editor.hass = hass;
+      editor.setConfig(editorConfig);
+      editor.addEventListener("config-changed", (ev) => {
+        editorConfig = ev.detail.config;
+        window.__editorConfig = editorConfig;
+        mount();
+      });
+      document.getElementById("editorhost").appendChild(editor);
+      document.getElementById("editorpreview").appendChild(preview);
+      mount();
+      window.__editor = editor;
+      window.__editorConfig = editorConfig;
+
+      /* Same again for the soil card's scale editor. */
+      let scaleConfig = { type: "custom:ecowitt-soil-card", device: soilCh2 };
+      const scaleEditor = document.createElement("ecowitt-scale-card-editor");
+      const scalePreview = document.createElement("ecowitt-soil-card");
+      const mountScale = () => {
+        scalePreview.setConfig(scaleConfig);
+        scalePreview.hass = hass;
+      };
+      scaleEditor.hass = hass;
+      scaleEditor.setConfig(scaleConfig);
+      scaleEditor.addEventListener("config-changed", (ev) => {
+        scaleConfig = ev.detail.config;
+        window.__scaleConfig = scaleConfig;
+        mountScale();
+      });
+      document.getElementById("scalehost").appendChild(scaleEditor);
+      document.getElementById("scalepreview").appendChild(scalePreview);
+      mountScale();
+      window.__scaleEditor = scaleEditor;
+      window.__scaleConfig = scaleConfig;
+
+      document.getElementById("theme").onclick = () =>
+        document.body.classList.toggle("dark");
+
+      /* Cycle --ha-font-size-scale the way HA's accessibility setting does,
+       * to check nothing clips or overflows at larger sizes. */
+      const scales = [1, 1.25, 1.5, 0.9];
+      let si = 0;
+      const scaleBtn = document.getElementById("scale");
+      scaleBtn.onclick = () => {
+        si = (si + 1) % scales.length;
+        document.documentElement.style.setProperty("--ha-font-size-scale", scales[si]);
+        scaleBtn.textContent = "Font scale: " + scales[si];
+      };
+    })();
+  </script>
+</body>
+</html>
