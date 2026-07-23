@@ -75,11 +75,14 @@ The numeric indices are precise but not readable at a glance, and a bare `0`
 overnight doesn't say *why*. `sensor.sunlight` describes the available light
 as one of a fixed vocabulary:
 
-`Darkness` · `Twilight` · `Heavy cloud` · `Overcast` · `Cloudy` ·
+`Darkness` · `Dawn` · `Dusk` · `Heavy cloud` · `Overcast` · `Cloudy` ·
 `Partly cloudy` · `Hazy sunshine` · `Full sunshine`
 
 Sun position is checked before the index, so a clear night reads **Darkness**
 rather than "Heavy cloud" — a 0 index at night means no sun, not thick cloud.
+The low-sun twilight band splits by the sun's direction of travel, so it reads
+**Dawn** while the sun is rising and **Dusk** while it is setting (falling back
+to a generic `Twilight` only if that direction is somehow unknown).
 
 The boundaries are drawn from measured conditions rather than spaced evenly.
 Against days whose real weather was known:

@@ -73,25 +73,36 @@ check("capped at 100", solar.clear_sky_index(2000, 45) == 100.0)
 
 print("\nsunlight description")
 # Sun position must beat the index: a clear night is not "Heavy cloud".
-check("deep night -> Darkness", solar.describe_sunlight(0.0, -40) == "Darkness")
-check("just below horizon -> Twilight", solar.describe_sunlight(0.0, -3) == "Twilight")
-check("low sun -> Twilight", solar.describe_sunlight(0.0, 2) == "Twilight")
-# Boundaries drawn from measured conditions.
+check("deep night -> Darkness", solar.describe_sunlight(0.0, -40, True) == "Darkness")
+# Twilight band splits morning from evening on the sun's direction of travel.
+check("rising, below horizon -> Dawn",
+      solar.describe_sunlight(0.0, -3, True) == "Dawn")
+check("setting, below horizon -> Dusk",
+      solar.describe_sunlight(0.0, -3, False) == "Dusk")
+check("rising, low sun -> Dawn", solar.describe_sunlight(0.0, 2, True) == "Dawn")
+check("setting, low sun -> Dusk", solar.describe_sunlight(0.0, 2, False) == "Dusk")
+# Direction unknown degrades to a generic label rather than guessing.
+check("unknown direction -> Twilight",
+      solar.describe_sunlight(0.0, 2, None) == "Twilight")
+# Boundaries drawn from measured conditions (direction is irrelevant by day).
 check("92 (measured clear) -> Full sunshine",
-      solar.describe_sunlight(92, 30) == "Full sunshine")
-check("80 -> Hazy sunshine", solar.describe_sunlight(80, 30) == "Hazy sunshine")
-check("65 -> Partly cloudy", solar.describe_sunlight(65, 30) == "Partly cloudy")
+      solar.describe_sunlight(92, 30, True) == "Full sunshine")
+check("80 -> Hazy sunshine", solar.describe_sunlight(80, 30, False) == "Hazy sunshine")
+check("65 -> Partly cloudy", solar.describe_sunlight(65, 30, True) == "Partly cloudy")
 check("50 (measured dry overcast) -> Cloudy",
-      solar.describe_sunlight(50, 30) == "Cloudy")
-check("30 (measured rain) -> Overcast", solar.describe_sunlight(30, 30) == "Overcast")
+      solar.describe_sunlight(50, 30, True) == "Cloudy")
+check("30 (measured rain) -> Overcast",
+      solar.describe_sunlight(30, 30, True) == "Overcast")
 check("18 (heavy overcast) -> Heavy cloud",
-      solar.describe_sunlight(18, 30) == "Heavy cloud")
-check("0 by day -> Heavy cloud", solar.describe_sunlight(0, 30) == "Heavy cloud")
-# No index source at all, but sun is up: say Twilight rather than crash.
-check("index None by day -> Twilight", solar.describe_sunlight(None, 30) == "Twilight")
+      solar.describe_sunlight(18, 30, True) == "Heavy cloud")
+check("0 by day -> Heavy cloud", solar.describe_sunlight(0, 30, True) == "Heavy cloud")
+# No index source at all, but sun is up in the twilight band: Dawn/Dusk.
+check("index None, rising -> Dawn", solar.describe_sunlight(None, 3, True) == "Dawn")
 # Every reachable value must be declared for the enum device class.
-produced = {solar.describe_sunlight(i, 30) for i in range(0, 101)}
-produced |= {solar.describe_sunlight(0, -40), solar.describe_sunlight(0, 2)}
+produced = set()
+for r in (True, False, None):
+    produced |= {solar.describe_sunlight(i, 30, r) for i in range(0, 101)}
+    produced |= {solar.describe_sunlight(0, -40, r), solar.describe_sunlight(0, 2, r)}
 check("all outputs are declared options",
       produced <= set(const.SUNLIGHT_OPTIONS),
       f"undeclared: {produced - set(const.SUNLIGHT_OPTIONS)}")

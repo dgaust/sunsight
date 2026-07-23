@@ -116,6 +116,12 @@ SAVE_DELAY: Final = 300
 TWILIGHT_ELEVATION: Final = -6.0
 
 SUNLIGHT_DARKNESS: Final = "Darkness"
+# The twilight band is split by whether the sun is climbing or sinking, so
+# "Twilight" in the morning reads as "Dawn" and in the evening as "Dusk".
+SUNLIGHT_DAWN: Final = "Dawn"
+SUNLIGHT_DUSK: Final = "Dusk"
+# Fallback for the rare case the sun's rising/setting direction is unknown;
+# kept only so the enum has a valid value to report then.
 SUNLIGHT_TWILIGHT: Final = "Twilight"
 
 # Ordered high to low; the first threshold the index meets or exceeds wins.
@@ -131,6 +137,8 @@ SUNLIGHT_LEVELS: Final = (
 # Every value the sensor can report, for the enum device class.
 SUNLIGHT_OPTIONS: Final = [
     SUNLIGHT_DARKNESS,
+    SUNLIGHT_DAWN,
+    SUNLIGHT_DUSK,
     SUNLIGHT_TWILIGHT,
     *[label for _, label in reversed(SUNLIGHT_LEVELS)],
 ]

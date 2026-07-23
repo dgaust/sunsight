@@ -15,6 +15,8 @@ from .const import (
     PV_AZ_BIN,
     PV_ELEV_BIN,
     SUNLIGHT_DARKNESS,
+    SUNLIGHT_DAWN,
+    SUNLIGHT_DUSK,
     SUNLIGHT_LEVELS,
     SUNLIGHT_TWILIGHT,
     TWILIGHT_ELEVATION,
@@ -52,18 +54,27 @@ def clear_sky_index(measured_wm2: float, elevation_deg: float) -> float:
     return min(measured_wm2 / expected * 100.0, 100.0)
 
 
-def describe_sunlight(index: float | None, elevation_deg: float) -> str:
+def describe_sunlight(
+    index: float | None, elevation_deg: float, rising: bool | None = None
+) -> str:
     """Plain-English description of how much sunlight is available.
 
     Sun position is checked before the index, because below the horizon the
     index is 0 for a reason that has nothing to do with cloud: describing a
     clear night as "Heavy cloud" would be actively wrong.
+
+    In the twilight band the sun's direction of travel distinguishes morning
+    from evening - Dawn while it is rising, Dusk while it is setting. When
+    that direction is unknown it degrades to a generic Twilight rather than
+    guessing.
     """
     if elevation_deg < TWILIGHT_ELEVATION:
         return SUNLIGHT_DARKNESS
-    if elevation_deg < MIN_INDEX_ELEVATION:
-        return SUNLIGHT_TWILIGHT
-    if index is None:
+    if elevation_deg < MIN_INDEX_ELEVATION or index is None:
+        if rising is True:
+            return SUNLIGHT_DAWN
+        if rising is False:
+            return SUNLIGHT_DUSK
         return SUNLIGHT_TWILIGHT
     for threshold, label in SUNLIGHT_LEVELS:
         if index >= threshold:

@@ -204,6 +204,19 @@ class SunSightManager:
         return bool(state and state.state == "above_horizon")
 
     @property
+    def sun_rising(self) -> bool | None:
+        """Whether the sun is climbing (morning) or sinking (evening).
+
+        None when sun.sun does not expose the attribute, so callers can tell
+        "unknown direction" apart from a definite morning or evening.
+        """
+        state = self.hass.states.get(SUN_ENTITY)
+        if state is None:
+            return None
+        value = state.attributes.get("rising")
+        return bool(value) if value is not None else None
+
+    @property
     def raining(self) -> bool:
         """True only when the rain sensor explicitly says wet.
 
@@ -294,7 +307,7 @@ class SunSightManager:
         elevation = self.sun_elevation
         if elevation is None:
             return None
-        return describe_sunlight(self.best_clear_index, elevation)
+        return describe_sunlight(self.best_clear_index, elevation, self.sun_rising)
 
     @property
     def best_clear_index(self) -> float | None:
