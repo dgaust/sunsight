@@ -54,6 +54,12 @@ class SunOnWindow(SunSightEntity, BinarySensorEntity):
         return self.manager.beam_on
 
     @property
+    def icon(self) -> str:
+        # Without this the light device class draws a lightbulb, which reads
+        # as a switchable light rather than a sun-on-glass sensor.
+        return "mdi:weather-sunny" if self.is_on else "mdi:weather-sunny-off"
+
+    @property
     def extra_state_attributes(self) -> dict:
         return {
             "illuminance": self.manager._float(
@@ -74,14 +80,16 @@ class SunOnWindow(SunSightEntity, BinarySensorEntity):
 class FineOutdoorWeather(SunSightEntity, BinarySensorEntity):
     """Daylight, dry, and measurably sunny."""
 
-    _attr_icon = "mdi:weather-sunny"
-
     def __init__(self, manager: SunSightManager) -> None:
         super().__init__(manager, "fine_outdoor_weather", "Fine outdoor weather")
 
     @property
     def is_on(self) -> bool:
         return self.manager.fine_weather
+
+    @property
+    def icon(self) -> str:
+        return "mdi:weather-sunny" if self.is_on else "mdi:weather-cloudy"
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -99,14 +107,18 @@ class FineOutdoorWeather(SunSightEntity, BinarySensorEntity):
 class FineDayExpected(SunSightEntity, BinarySensorEntity):
     """Forecast-driven outlook for the day."""
 
-    _attr_icon = "mdi:weather-partly-sunny"
-
     def __init__(self, manager: SunSightManager) -> None:
         super().__init__(manager, "fine_day_expected", "Fine day expected")
 
     @property
     def is_on(self) -> bool:
         return self.manager.fine_day_expected
+
+    @property
+    def icon(self) -> str:
+        # mdi:weather-partly-sunny does not exist; the real glyph is
+        # weather-partly-cloudy. Reactive so an off day is not shown as fine.
+        return "mdi:weather-partly-cloudy" if self.is_on else "mdi:weather-cloudy"
 
     @property
     def extra_state_attributes(self) -> dict:
