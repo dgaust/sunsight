@@ -22,7 +22,9 @@ class FakeHTMLElement {
 }
 
 const ctx = vm.createContext({
-  console: { info() {} },
+  // A real console has warn/error; the card uses them on its soft-failure
+  // paths, so the stub must too or those paths throw under test.
+  console: { info() {}, warn() {}, error() {} },
   HTMLElement: FakeHTMLElement,
   customElements: {
     _m: new Map(),
@@ -144,6 +146,40 @@ assert("soil CH1 and CH2 are distinct", soil1.soil_moisture !== soil.soil_moistu
 console.log("edge cases");
 assert("unknown device => {}", Object.keys(api.discover(hass, "nope")).length === 0);
 assert("missing hass => {}", Object.keys(api.discover(null, "dev1")).length === 0);
+
+/* Discovery must survive a half-populated registry, which is the state right
+ * after a restart or during a websocket reconnect. A throw here propagates out
+ * of `set hass` and leaves the card stuck on a configuration error. */
+const regTestDev = deviceIds["Ecowitt Weather Station"];
+(function halfPopulatedRegistry() {
+  // A null entry in the entity registry.
+  const withNull = {
+    ...hass,
+    entities: { ...hass.entities, "sensor.ghost": null },
+  };
+  let ids;
+  assert("null registry entry does not throw", (() => {
+    try { ids = api.discover(withNull, regTestDev); return true; } catch { return false; }
+  })());
+  assert("still classifies the real device around the null",
+    ids && ids.temp_out === "sensor.ecowitt_outdoor_temp_13360");
+
+  // An entity on the device whose state has no attributes yet.
+  const noAttrs = {
+    ...hass,
+    states: { ...hass.states, "sensor.ecowitt_outdoor_temp_13360":
+      { state: "18", attributes: undefined } },
+  };
+  assert("state without attributes does not throw", (() => {
+    try { api.discover(noAttrs, regTestDev); return true; } catch { return false; }
+  })());
+
+  // Missing states map entirely.
+  assert("missing states map does not throw", (() => {
+    try { api.discover({ ...hass, states: undefined }, regTestDev); return true; }
+    catch { return false; }
+  })());
+})();
 check(
   "unavailable state formats as dash",
   api.fmt({ states: { "sensor.x": { state: "unavailable", attributes: {} } } }, "sensor.x"),

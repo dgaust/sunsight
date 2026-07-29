@@ -14,7 +14,7 @@
  * hard-codes an entity id and extra probes work without a code change.
  */
 
-const CARD_VERSION = "1.21.0";
+const CARD_VERSION = "1.21.1";
 
 /* Plain text rather than a %c-styled banner: console styling can only take
  * literal colours, and nothing in this file should hardcode one. */
@@ -97,31 +97,42 @@ function discover(hass, deviceId) {
   const found = {};
   if (!hass || !deviceId || !hass.entities) return found;
 
-  for (const [entityId, reg] of Object.entries(hass.entities)) {
-    if (reg.device_id !== deviceId) continue;
-    if (!hass.states[entityId]) continue;
+  /* Discovery must never throw. The entity and state registries can be
+   * missing or half-populated right after a restart, or while the websocket
+   * reconnects - a moment when a registry entry can be null or a state can
+   * lack attributes. Failing softly returns whatever was found so far, so the
+   * card shows its "no sensors" state and retries on the next update, instead
+   * of throwing out of `set hass` and leaving a configuration error on screen. */
+  try {
+    for (const [entityId, reg] of Object.entries(hass.entities)) {
+      if (!reg || reg.device_id !== deviceId) continue;
+      const st = hass.states[entityId];
+      if (!st) continue;
 
-    const domain = entityId.split(".")[0];
-    if (domain !== "sensor" && domain !== "binary_sensor") continue;
+      const domain = entityId.split(".")[0];
+      if (domain !== "sensor" && domain !== "binary_sensor") continue;
 
-    const rules = domain === "binary_sensor" ? BINARY_RULES : SENSOR_RULES;
-    const deviceClass = hass.states[entityId].attributes.device_class;
-    let claimed = false;
-    for (const [key, re, requiredClass] of rules) {
-      if (!re.test(entityId)) continue;
-      /* Name matches but wrong kind of sensor: keep looking rather than
-       * letting it claim the slot. */
-      if (requiredClass && deviceClass !== requiredClass) continue;
-      if (found[key] === undefined) found[key] = entityId;
-      claimed = true; // matched; the slot may already be taken
-      break;
+      const rules = domain === "binary_sensor" ? BINARY_RULES : SENSOR_RULES;
+      const deviceClass = (st.attributes || {}).device_class;
+      let claimed = false;
+      for (const [key, re, requiredClass] of rules) {
+        if (!re.test(entityId)) continue;
+        /* Name matches but wrong kind of sensor: keep looking rather than
+         * letting it claim the slot. */
+        if (requiredClass && deviceClass !== requiredClass) continue;
+        if (found[key] === undefined) found[key] = entityId;
+        claimed = true; // matched; the slot may already be taken
+        break;
+      }
+
+      if (!claimed && domain === "sensor") {
+        const key = CLASS_FALLBACK[deviceClass];
+        if (key && found[key] === undefined) found[key] = entityId;
+      }
     }
-
-    if (!claimed && domain === "sensor") {
-      const dc = hass.states[entityId].attributes.device_class;
-      const key = CLASS_FALLBACK[dc];
-      if (key && found[key] === undefined) found[key] = entityId;
-    }
+  } catch (err) {
+    /* eslint-disable-next-line no-console */
+    console.warn("ecowitt-cards: entity discovery failed, will retry", err);
   }
   return found;
 }
