@@ -774,6 +774,19 @@ const resilience = (async () => {
     sent.some((m) => m.service_data.message.includes("hidden reason")));
   check("and rebuilt", loads, 1);
   ctx.document.querySelectorAll = () => [];
+
+  console.log("registry swap");
+  /* Home Assistant's app bundle replaces window.customElements with a scoped
+   * registry polyfill that only knows elements defined through it. A card
+   * file that ran first must re-register there, or Lovelace reports "Custom
+   * element doesn't exist" for every card it creates afterwards. */
+  const nativeReg = ctx.customElements;
+  const scoped = { m: new Map(), get(t) { return this.m.get(t); }, define(t, c) { this.m.set(t, c); } };
+  ctx.customElements = scoped;
+  check("the replacement registry starts without the card", scoped.get("ecowitt-weather-card"), undefined);
+  intervals.forEach((fn) => fn());
+  check("and has it after the next check", scoped.get("ecowitt-weather-card"), nativeReg.get("ecowitt-weather-card"));
+  ctx.customElements = nativeReg;
 })();
 
 /* ---- a container's signature is recorded only after its build ---- */
