@@ -142,6 +142,13 @@ them with the frontend automatically, with a `?v=` cache-buster so an update
 can't leave a stale module behind. Registration is best-effort and never
 blocks setup — if it fails, the log says how to add the resource by hand.
 
+If a card shows "Configuration error", the reason is in the Home Assistant log
+(**Settings → System → Logs**, logger `custom_components.sunsight.cards`) —
+Home Assistant only shows it in edit mode, so the cards report it themselves,
+with the card version and the device/browser. They also retry a card file that
+failed to load (common when a phone app resumes before its connection is back)
+and rebuild themselves if Home Assistant swapped one for an error card.
+
 The cards work with any entities, so SunSight's own sensors drop straight into
 the weather card as tiles:
 

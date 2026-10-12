@@ -21,6 +21,8 @@ class FakeHTMLElement {
   dispatchEvent() {}
 }
 
+const intervals = [];
+const app = { hass: null };
 const ctx = vm.createContext({
   // A real console has warn/error; the card uses them on its soft-failure
   // paths, so the stub must too or those paths throw under test.
@@ -31,11 +33,26 @@ const ctx = vm.createContext({
     get(t) { return this._m.get(t); },
     define(t, c) { this._m.set(t, c); },
   },
-  document: { createElement: () => new FakeHTMLElement() },
+  document: {
+    hidden: false,
+    createElement: () => new FakeHTMLElement(),
+    addEventListener() {},
+    querySelector: (sel) => (sel === "home-assistant" ? app : null),
+    querySelectorAll: () => [],
+  },
   window: {},
   Event: class {},
   CustomEvent: class {},
+  Promise,
+  navigator: { onLine: true, userAgent: "test-agent" },
+  location: { pathname: "/central-control/weather" },
+  performance: { now: () => 12000 },
+  // Captured, not run, so the guard's periodic check can be fired by hand.
+  setTimeout: () => 0,
+  clearTimeout() {},
+  setInterval: (fn) => { intervals.push(fn); return intervals.length; },
 });
+ctx.window = ctx;
 
 vm.runInContext(
   fs.readFileSync(CARD, "utf8") +
@@ -673,41 +690,91 @@ for (const d of [0, 78, 359, null]) {
   );
 }
 
-/* ---- set hass must never throw ---- */
+/* ---- the setters never render, and a render never wedges ---- */
 console.log("render resilience");
-/* Home Assistant's hui-card (frontend 20260930.x) catches a throwing `hass`
- * setter and permanently swaps the card for a message-less error card --
- * "Configuration error" until the page is reloaded. Phones on cellular
- * reconnect often, and one throw during a half-populated reconnect is enough.
- * So the setter itself must swallow failures and recover on the next update. */
+/* Home Assistant's hui-card treats an exception from a card's `hass` (or
+ * `setConfig`) as fatal and permanently swaps the card for a message-less
+ * "Configuration error" until the page is reloaded. So the setters only store
+ * and queue; the render runs afterwards, catches its own failures, and the
+ * next update recovers. */
 const WeatherCls = ctx.customElements.get("ecowitt-weather-card");
 const wsDevice = deviceIds["Ecowitt Weather Station"];
+const flush = () => new Promise((r) => setImmediate(r));
 
-const guarded = Object.create(WeatherCls.prototype);
-const fakeShadow = { innerHTML: "" };
-guarded._shadow = () => fakeShadow;
-guarded._bindCells = () => {};
-guarded._config = { type: "custom:ecowitt-weather-card", device: wsDevice };
-guarded._built = true;
-guarded._update = () => { throw new Error("transient boom"); };
+const resilience = (async () => {
+  const guarded = Object.create(WeatherCls.prototype);
+  const fakeShadow = { innerHTML: "" };
+  guarded._shadow = () => fakeShadow;
+  guarded._bindCells = () => {};
+  guarded._config = { type: "custom:ecowitt-weather-card", device: wsDevice };
+  guarded._built = true;
+  guarded._update = () => { throw new Error("transient boom"); };
 
-let setterThrew = false;
-try { guarded.hass = hass; } catch (e) { setterThrew = true; }
-assert("a throw during render does not escape set hass", !setterThrew);
-assert("the card shows its own error rather than HA's", /Card error/.test(fakeShadow.innerHTML));
-check("and forgets it was built, so the next pass rebuilds", guarded._built, false);
+  let setterThrew = false;
+  try { guarded.hass = hass; } catch (e) { setterThrew = true; }
+  assert("set hass never throws", !setterThrew);
+  check("and never renders inside the setter", fakeShadow.innerHTML, "");
+  await flush();
+  assert("a throw in the render shows the card's own error, not HA's", /Card error/.test(fakeShadow.innerHTML));
+  check("and forgets it was built, so the next pass rebuilds", guarded._built, false);
 
-let rebuilt = false;
-let updated = false;
-guarded._build = () => { rebuilt = true; guarded._built = true; };
-guarded._update = () => { updated = true; };
-guarded.hass = hass;
-assert("the next good update rebuilds from scratch", rebuilt && updated);
+  let rebuilt = false;
+  let updated = false;
+  guarded._build = () => { rebuilt = true; guarded._built = true; };
+  guarded._update = () => { updated = true; };
+  guarded.hass = hass;
+  await flush();
+  assert("the next good update rebuilds from scratch", rebuilt && updated);
 
-let noConfigThrew = false;
-const bare = Object.create(WeatherCls.prototype);
-try { bare.hass = hass; } catch (e) { noConfigThrew = true; }
-assert("hass arriving before setConfig is ignored, not thrown", !noConfigThrew);
+  let renders = 0;
+  guarded._update = () => { renders++; };
+  guarded.hass = hass; guarded.hass = hass; guarded.hass = hass;
+  await flush();
+  check("a burst of updates renders once", renders, 1);
+
+  const keep = Object.create(WeatherCls.prototype);
+  const keepShadow = { innerHTML: "drawn" };
+  keep._shadow = () => keepShadow;
+  keep.setConfig({ type: "custom:ecowitt-weather-card", device: wsDevice });
+  check("a config change leaves the card on screen until the re-render", keepShadow.innerHTML, "drawn");
+
+  let noConfigThrew = false;
+  const bare = Object.create(WeatherCls.prototype);
+  try { bare.hass = hass; } catch (e) { noConfigThrew = true; }
+  await flush();
+  assert("hass arriving before setConfig is ignored, not thrown", !noConfigThrew);
+
+  let badThrew = false;
+  try { Object.create(WeatherCls.prototype).setConfig({ type: "custom:ecowitt-weather-card" }); } catch (e) { badThrew = true; }
+  assert("a config with no device still throws (the editor shows why)", badThrew);
+
+  /* ---- failures reach Home Assistant's log ---- */
+  console.log("reporting");
+  const sent = [];
+  app.hass = { connected: true, callWS: (m) => { sent.push(m); return Promise.resolve(); } };
+  ctx.console.error("custom:ecowitt-wind-card", new Error("wind broke"));
+  const r = sent.find((m) => m.service_data.message.includes("wind broke"));
+  check("a card error is written via system_log.write", r && `${r.domain}.${r.service}`, "system_log.write");
+  check("under SunSight's logger", r && r.service_data.logger, "custom_components.sunsight.cards");
+  const n = sent.length;
+  ctx.console.error("hui-some-other-card", new Error("not ours"));
+  check("other cards' errors are left alone", sent.length, n);
+
+  let loads = 0;
+  const wrapper = {
+    localName: "hui-card",
+    config: { type: "custom:ecowitt-rain-card", device: "x" },
+    preview: false,
+    _element: { localName: "hui-error-card", _config: { type: "error", message: "hidden reason" } },
+    load() { loads++; },
+  };
+  ctx.document.querySelectorAll = () => [wrapper];
+  intervals.forEach((fn) => fn());
+  assert("a card swapped for HA's error card is reported with the hidden message",
+    sent.some((m) => m.service_data.message.includes("hidden reason")));
+  check("and rebuilt", loads, 1);
+  ctx.document.querySelectorAll = () => [];
+})();
 
 /* ---- a container's signature is recorded only after its build ---- */
 /* Recording it first meant a throw mid-build left a signature describing a
@@ -732,5 +799,7 @@ sync._syncGrid(container, [{ key: "x" }]);
 assert("so the next pass rebuilds rather than patching", !patched && container.innerHTML.includes("cell"));
 assert("and records the signature once built", container.dataset.sig !== "OLD");
 
-console.log(failures ? `\n${failures} FAILURE(S)` : "\nall tests passed");
-process.exit(failures ? 1 : 0);
+resilience.then(() => {
+  console.log(failures ? `\n${failures} FAILURE(S)` : "\nall tests passed");
+  process.exit(failures ? 1 : 0);
+});
