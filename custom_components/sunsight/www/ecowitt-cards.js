@@ -14,7 +14,7 @@
  * hard-codes an entity id and extra probes work without a code change.
  */
 
-const CARD_VERSION = "1.21.1";
+const CARD_VERSION = "1.21.2";
 
 /* Plain text rather than a %c-styled banner: console styling can only take
  * literal colours, and nothing in this file should hardcode one. */
@@ -705,25 +705,62 @@ class EcowittBase extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    this._ids = withHubMetrics(
-      hass, this._config.device, discover(hass, this._config.device)
-    );
-    this._applyEntityOverrides();
+    if (!hass || !this._config) return;
 
-    /* A device with nothing recognisable behind it is almost always the
-     * wrong device rather than a broken sensor, and a card full of dashes
-     * doesn't say so. Rebuild if a later update does find entities. */
-    if (Object.keys(this._ids).length === 0) {
-      this._renderEmpty();
-      this._built = false;
-      return;
+    /*
+     * A render must never leave the card wedged. Home Assistant re-supplies
+     * `hass` on every state change, but if one pass throws — a half-formed
+     * state after a restart, a registry not finished loading, an entity in
+     * an odd shape — the exception propagates and the card breaks. Worse,
+     * the signature caches (`data-sig`, `_built`) can be left describing a
+     * DOM that was never finished, so later good updates skip the rebuild
+     * and the broken render sticks. Catch it, show a card that says so, and
+     * reset the state so the very next update rebuilds from scratch.
+     */
+    try {
+      this._ids = withHubMetrics(
+        hass, this._config.device, discover(hass, this._config.device)
+      );
+      this._applyEntityOverrides();
+
+      /* A device with nothing recognisable behind it is almost always the
+       * wrong device rather than a broken sensor, and a card full of dashes
+       * doesn't say so. Rebuild if a later update does find entities. */
+      if (Object.keys(this._ids).length === 0) {
+        this._renderEmpty();
+        this._built = false;
+        return;
+      }
+      if (!this._built) this._build();
+      this._update();
+      /* Bind centrally: the hero readings set their data-entity on every
+       * pass, and a card whose grid didn't rebuild would otherwise never
+       * attach their handlers. Assigning onclick is idempotent. */
+      this._bindCells();
+    } catch (err) {
+      this._renderError(err);
     }
-    if (!this._built) this._build();
-    this._update();
-    /* Bind centrally: the hero readings set their data-entity on every
-     * pass, and a card whose grid didn't rebuild would otherwise never
-     * attach their handlers. Assigning onclick is idempotent. */
-    this._bindCells();
+  }
+
+  /*
+   * Replace the whole shadow DOM with an error card and clear _built, so the
+   * next update runs _build() from scratch rather than patching a DOM that
+   * isn't there. Without the reset a single transient failure would show the
+   * error card forever — the bug this whole guard exists to prevent.
+   */
+  _renderError(err) {
+    this._built = false;
+    const msg = (err && err.message) || String(err);
+    this._shadow().innerHTML = `
+      <style>${BASE_CSS}</style>
+      <ha-card>
+        <div class="head"><div class="title">Ecowitt</div></div>
+        <div class="warn">
+          <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
+          Card error: ${msg}
+        </div>
+      </ha-card>`;
+    console.error("ecowitt-cards:", err);
   }
 
   /* Entities named directly in the config win over anything discovery
@@ -817,8 +854,11 @@ class EcowittBase extends HTMLElement {
     const sig = live.map((s) => `${s.id}:${s.label}:${s.icon}`).join("|");
 
     if (container.dataset.sig !== sig) {
-      container.dataset.sig = sig;
+      /* Build first, record the signature only once it succeeded: if a cell
+       * throws mid-build, the old sig stays and the next pass rebuilds
+       * rather than patching an unfinished DOM. */
       container.innerHTML = live.map((s) => this._cell(s)).join("");
+      container.dataset.sig = sig;
       this._bindCells();
       return;
     }
@@ -871,8 +911,8 @@ class EcowittBase extends HTMLElement {
     ].join("|");
 
     if (container.dataset.sig !== sig) {
-      container.dataset.sig = sig;
       container.innerHTML = this._headHtml(subject, preferDevice);
+      container.dataset.sig = sig;
       this._bindCells();
       return;
     }
@@ -1269,8 +1309,8 @@ class EcowittWindCard extends EcowittBase {
     const stats = s.getElementById("stats");
     const sig = rows.map((r) => r.id).join("|");
     if (stats.dataset.sig !== sig) {
-      stats.dataset.sig = sig;
       stats.innerHTML = rows.map((r) => this._stat(r.id, r.label, r.value)).join("");
+      stats.dataset.sig = sig;
       this._bindCells();
     } else {
       stats.querySelectorAll(".srow").forEach((el, i) => {
@@ -1401,7 +1441,6 @@ class EcowittRainCard extends EcowittBase {
     const el = s.getElementById("periods");
     const sig = periods.map(([k]) => this._ids[k]).join("|");
     if (el.dataset.sig !== sig) {
-      el.dataset.sig = sig;
       el.innerHTML = periods
         .map(([k, label], i) => {
           const id = this._ids[k];
@@ -1413,6 +1452,7 @@ class EcowittRainCard extends EcowittBase {
           </div>`;
         })
         .join("");
+      el.dataset.sig = sig;
       this._bindCells();
     } else {
       el.querySelectorAll(".prow").forEach((row, i) => {
@@ -1544,9 +1584,9 @@ class EcowittSolarCard extends EcowittBase {
     const track = s.getElementById("scale");
     const sig = JSON.stringify(scale);
     if (track.dataset.sig !== sig) {
-      track.dataset.sig = sig;
       track.style.backgroundImage = scaleGradient(scale);
       s.getElementById("ticks").innerHTML = scaleTicks(scale);
+      track.dataset.sig = sig;
     }
     s.getElementById("marker").style.left =
       `${Math.max(0, Math.min(100, ((uv === null ? 0 : uv) / scale.max) * 100))}%`;
@@ -1662,9 +1702,9 @@ class EcowittSoilCard extends EcowittBase {
     const track = s.getElementById("track");
     const sig = JSON.stringify(scale);
     if (track.dataset.sig !== sig) {
-      track.dataset.sig = sig;
       track.style.backgroundImage = scaleGradient(scale);
       s.getElementById("zones").innerHTML = scaleTicks(scale);
+      track.dataset.sig = sig;
     }
     s.getElementById("marker").style.left =
       `${Math.max(0, Math.min(100, ((pct === null ? 0 : pct) / scale.max) * 100))}%`;

@@ -673,5 +673,64 @@ for (const d of [0, 78, 359, null]) {
   );
 }
 
+/* ---- set hass must never throw ---- */
+console.log("render resilience");
+/* Home Assistant's hui-card (frontend 20260930.x) catches a throwing `hass`
+ * setter and permanently swaps the card for a message-less error card --
+ * "Configuration error" until the page is reloaded. Phones on cellular
+ * reconnect often, and one throw during a half-populated reconnect is enough.
+ * So the setter itself must swallow failures and recover on the next update. */
+const WeatherCls = ctx.customElements.get("ecowitt-weather-card");
+const wsDevice = deviceIds["Ecowitt Weather Station"];
+
+const guarded = Object.create(WeatherCls.prototype);
+const fakeShadow = { innerHTML: "" };
+guarded._shadow = () => fakeShadow;
+guarded._bindCells = () => {};
+guarded._config = { type: "custom:ecowitt-weather-card", device: wsDevice };
+guarded._built = true;
+guarded._update = () => { throw new Error("transient boom"); };
+
+let setterThrew = false;
+try { guarded.hass = hass; } catch (e) { setterThrew = true; }
+assert("a throw during render does not escape set hass", !setterThrew);
+assert("the card shows its own error rather than HA's", /Card error/.test(fakeShadow.innerHTML));
+check("and forgets it was built, so the next pass rebuilds", guarded._built, false);
+
+let rebuilt = false;
+let updated = false;
+guarded._build = () => { rebuilt = true; guarded._built = true; };
+guarded._update = () => { updated = true; };
+guarded.hass = hass;
+assert("the next good update rebuilds from scratch", rebuilt && updated);
+
+let noConfigThrew = false;
+const bare = Object.create(WeatherCls.prototype);
+try { bare.hass = hass; } catch (e) { noConfigThrew = true; }
+assert("hass arriving before setConfig is ignored, not thrown", !noConfigThrew);
+
+/* ---- a container's signature is recorded only after its build ---- */
+/* Recording it first meant a throw mid-build left a signature describing a
+ * DOM that was never finished, so every later update matched it, patched
+ * an empty container, and never rebuilt -- blank for good. */
+const sync = Object.create(WeatherCls.prototype);
+sync._hass = hass;
+sync._bindCells = () => {};
+sync._resolveSpec = () => ({ id: "sensor.x", label: "X", icon: "mdi:x", digits: 1, suffixUnit: true });
+let patched = false;
+sync._patchCells = () => { patched = true; };
+const container = { dataset: { sig: "OLD" }, innerHTML: "old" };
+
+sync._cell = () => { throw new Error("mid-build"); };
+let syncThrew = false;
+try { sync._syncGrid(container, [{ key: "x" }]); } catch (e) { syncThrew = true; }
+assert("a mid-build throw still propagates to the guard", syncThrew);
+check("and leaves the old signature in place", container.dataset.sig, "OLD");
+
+sync._cell = () => '<div class="cell"></div>';
+sync._syncGrid(container, [{ key: "x" }]);
+assert("so the next pass rebuilds rather than patching", !patched && container.innerHTML.includes("cell"));
+assert("and records the signature once built", container.dataset.sig !== "OLD");
+
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nall tests passed");
 process.exit(failures ? 1 : 0);
