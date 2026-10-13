@@ -5,10 +5,15 @@
     "@dgaust"
   ],
   "config_flow": true,
+  "dependencies": [
+    "http",
+    "frontend",
+    "lovelace"
+  ],
   "documentation": "https://github.com/dgaust/sunsight",
   "integration_type": "service",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/dgaust/sunsight/issues",
   "requirements": [],
-  "version": "0.5.1"
+  "version": "0.6.0"
 }

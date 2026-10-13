@@ -14,7 +14,7 @@
  * hard-codes an entity id and extra probes work without a code change.
  */
 
-const CARD_VERSION = "1.22.1";
+const CARD_VERSION = "1.23.0";
 
 /* Plain text rather than a %c-styled banner: console styling can only take
  * literal colours, and nothing in this file should hardcode one. */
@@ -679,189 +679,22 @@ const BASE_CSS = `
   }
 `;
 
-/* ------------------------------------------------------------------ *
- * Failure reporting and recovery
- * ------------------------------------------------------------------ */
-
 /*
- * Outside edit mode Home Assistant shows a broken card as a bare
- * "Configuration error" and keeps the reason to itself (the message is only
- * rendered in edit mode, and only logged to the browser console). On a phone
- * that leaves nothing to go on. So this module reports, to Home Assistant's
- * own log (Settings > System > Logs, logger "custom_components.sunsight.cards"):
- *
- *   - any console error that names one of these cards - Home Assistant logs
- *     every card it gives up on there, with the exception;
- *   - any of these cards found replaced by Home Assistant's error card, with
- *     the hidden message read off that error card;
- *   - a card file that only loaded after failed attempts (the loader leaves a
- *     note on window for this module to pick up).
- *
- * A card found replaced is also rebuilt through the card wrapper's public
- * load(), a few times at most, so a one-off failure doesn't stay on screen
- * until the app is restarted. Everything here is best-effort and swallows its
- * own errors: diagnostics must never be what breaks a dashboard.
+ * A caught render error is shown on the card, and still reaches Home
+ * Assistant's log: it's re-thrown on a fresh task, where the frontend's own
+ * uncaught-error handler records it (Settings > System > Logs). Once per
+ * message, so a card failing on every state change can't flood the log.
  */
-const GUARD = (() => {
-  const LOGGER = "custom_components.sunsight.cards";
-  const TAG_PREFIX = "ecowitt-";
-  const LOAD_TAG = "ecowitt-weather-card";
-  /* Loaded twice (a leftover dashboard resource as well as the auto-load)?
-   * Install once, or every error would be reported twice. */
-  const KEY = `__cardGuard_${TAG_PREFIX}`;
-  if (window[KEY]) return window[KEY];
-  const MAX_REPORTS = 25;
-  const REBUILD_GAP_MS = 20000;
-  const MAX_REBUILDS = 5;
-  const sent = new Set();
-  const queue = [];
-  const rebuilds = new WeakMap();
-  let flushTimer = 0;
-
-  const appHass = () => {
-    const ha = document.querySelector("home-assistant");
-    return ha ? ha.hass : null;
-  };
-
-  const context = () =>
-    `[card ${CARD_VERSION}; up ${Math.round(performance.now() / 1000)}s; ` +
-    `online=${navigator.onLine}; visible=${!document.hidden}; ` +
-    `${location.pathname}; ${navigator.userAgent}]`;
-
-  /* Raw call_service over the socket rather than hass.callService, which
-   * can raise a toast of its own when the call fails. */
-  const flush = () => {
-    clearTimeout(flushTimer);
-    flushTimer = 0;
-    try {
-      const hass = appHass();
-      if (!hass || !hass.connected || !hass.callWS) {
-        if (queue.length) flushTimer = setTimeout(flush, 5000);
-        return;
-      }
-      while (queue.length) {
-        const [level, message] = queue.shift();
-        hass
-          .callWS({
-            type: "call_service",
-            domain: "system_log",
-            service: "write",
-            service_data: { logger: LOGGER, level, message },
-          })
-          .catch(() => {});
-      }
-    } catch (_err) {
-      /* Reporting is best-effort. */
-    }
-  };
-
-  /* `key` decides what counts as the same problem: an error's stack differs
-   * by call site, so the console path keys on name + message alone. */
-  const report = (level, text, key = text) => {
-    if (sent.has(key) || sent.size >= MAX_REPORTS) return;
-    sent.add(key);
-    queue.push([level, `${text} ${context()}`]);
-    flush();
-  };
-
-  /* Duck-typed: an Error from another realm fails instanceof. */
-  const isError = (arg) =>
-    !!arg && typeof arg === "object" && typeof arg.message === "string" && "stack" in arg;
-
-  const describe = (arg) => {
-    if (isError(arg)) {
-      const stack = (arg.stack || "").split("\n").slice(0, 6).join("\n");
-      return stack.includes(arg.message) ? stack : `${arg.name}: ${arg.message}\n${stack}`;
-    }
-    if (typeof arg === "string") return arg;
-    try {
-      return JSON.stringify(arg).slice(0, 500);
-    } catch (_err) {
-      return String(arg);
-    }
-  };
-
-  const ours = (type) => typeof type === "string" && type.startsWith(`custom:${TAG_PREFIX}`);
-
-  /* Home Assistant logs a card it gives up on as console.error(type, err)
-   * (or "card", type, err); the cards log their own failures the same way. */
-  const consoleError = console.error;
-  console.error = function (...args) {
-    try {
-      if (args.some((a) => typeof a === "string" && a.includes(TAG_PREFIX))) {
-        const key = args.map((a) => (isError(a) ? `${a.name}: ${a.message}` : describe(a))).join(" ");
-        report("error", `Console error: ${args.map(describe).join(" ")}`, key);
-      }
-    } catch (_err) {
-      /* never let diagnostics break logging */
-    }
-    return consoleError.apply(this, args);
-  };
-
-  const huiCards = (root, out) => {
-    for (const el of root.querySelectorAll("*")) {
-      if (el.localName === "hui-card") out.push(el);
-      if (el.shadowRoot) huiCards(el.shadowRoot, out);
-    }
-    return out;
-  };
-
-  const sweep = () => {
-    try {
-      if (document.hidden) return;
-      for (const wrapper of huiCards(document, [])) {
-        const type = wrapper.config && wrapper.config.type;
-        if (!ours(type) || wrapper.preview) continue;
-        const el = wrapper._element || wrapper.firstElementChild;
-        if (!el || el.localName !== "hui-error-card") continue;
-
-        const message = (el._config && el._config.message) ||
-          "no message (Home Assistant replaces the card this way when a property setter throws)";
-        report("error", `${type} was showing Home Assistant's error card: ${message}`);
-
-        /* Rebuild only once our element exists - otherwise the loader is
-         * still working on it and Lovelace will rebuild by itself. */
-        const tag = type.slice("custom:".length);
-        const seen = rebuilds.get(wrapper) || { count: 0, last: 0 };
-        const now = Date.now();
-        if (!customElements.get(tag) || seen.count >= MAX_REBUILDS || now - seen.last < REBUILD_GAP_MS) {
-          continue;
-        }
-        rebuilds.set(wrapper, { count: seen.count + 1, last: now });
-        if (typeof wrapper.load === "function") {
-          wrapper.load();
-          report("warning", `${type} rebuilt after Home Assistant's error card (rebuild ${seen.count + 1})`);
-        }
-      }
-    } catch (err) {
-      report("warning", `Card check failed: ${describe(err)}`);
-    }
-  };
-
-  /* The loader notes failed attempts on window before this file ran. */
-  try {
-    const note = window[`__cardLoad_${LOAD_TAG}`];
-    if (note && note.failures) {
-      report(
-        "warning",
-        `Card file needed ${note.failures + 1} attempts to load ` +
-          `(${Math.round((performance.now() - note.since) / 1000)}s after the first failure; ` +
-          `last error: ${note.last})`
-      );
-    }
-  } catch (_err) {
-    /* best-effort */
-  }
-
-  setInterval(sweep, 10000);
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) setTimeout(sweep, 2000);
+const REPORTED = new Set();
+const reportError = (source, err) => {
+  const message = `${source}: ${(err && err.message) || err}`;
+  if (REPORTED.has(message)) return;
+  REPORTED.add(message);
+  setTimeout(() => {
+    // Duck-typed: an Error from another realm fails instanceof.
+    throw err && typeof err.message === "string" ? err : new Error(message);
   });
-  setTimeout(sweep, 5000);
-
-  window[KEY] = { report, describe };
-  return window[KEY];
-})();
+};
 
 /* ------------------------------------------------------------------ *
  * Base card
@@ -938,7 +771,7 @@ class EcowittBase extends HTMLElement {
    * The one place a card touches its DOM. A pass that throws - a half-formed
    * state after a restart, a registry not finished loading, an entity in an
    * odd shape - is caught and shown as the card's own error (and reported to
-   * Home Assistant's log). The signature caches (`data-sig`, `_built`) are
+   * Home Assistant's log, see reportError). The signature caches (`data-sig`, `_built`) are
    * reset with it, so the next update rebuilds from scratch instead of
    * patching a DOM that never finished.
    */
@@ -988,7 +821,7 @@ class EcowittBase extends HTMLElement {
           Card error: ${msg}
         </div>
       </ha-card>`;
-    console.error("ecowitt-cards:", err);
+    reportError(this.localName || "ecowitt-cards", err);
   }
 
   /* Entities named directly in the config win over anything discovery
@@ -2748,39 +2581,15 @@ const CARDS = [
 ];
 
 /*
- * Register the custom elements with whichever registry is current - and again
- * whenever it changes.
- *
- * Home Assistant's app bundle installs a scoped-custom-element-registry
- * polyfill that *replaces* window.customElements. The replacement only knows
- * elements defined through it. This file is auto-loaded at the very start of
- * the page, so on a phone (cached file, slow app bundle) it can run first and
- * define its cards on the browser's native registry; once the polyfill takes
- * over, Lovelace's customElements.get() can't see them, a newly created card
- * (switching views, returning to the app) shows "Custom element doesn't
- * exist", and its whenDefined() never resolves. Re-defining on the new
- * registry fixes that, and resolves the whenDefined Lovelace is waiting on,
- * so the error cards rebuild themselves. The check is a few map lookups, so
- * it simply runs twice a second.
+ * Define each element only where it's missing, so a second copy of this file
+ * (say, a leftover hand-added resource) can't throw "already been used". The
+ * integration registers this file as a dashboard resource, so it runs after
+ * Home Assistant's frontend has set up its custom-element registry.
  */
 const defineElements = (definitions) => {
-  const done = new WeakSet();
-  const ensure = () => {
-    const registry = window.customElements;
-    if (!registry || done.has(registry)) return;
-    for (const [tag, cls] of definitions) {
-      try {
-        if (!registry.get(tag)) registry.define(tag, cls);
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn(`${tag}: could not register with the current registry`, err);
-      }
-    }
-    done.add(registry);
-  };
-  ensure();
-  setInterval(ensure, 500);
-  document.addEventListener("visibilitychange", ensure);
+  for (const [tag, cls] of definitions) {
+    if (!customElements.get(tag)) customElements.define(tag, cls);
+  }
 };
 
 defineElements([

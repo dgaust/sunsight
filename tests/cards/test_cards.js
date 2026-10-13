@@ -21,8 +21,7 @@ class FakeHTMLElement {
   dispatchEvent() {}
 }
 
-const intervals = [];
-const app = { hass: null };
+const timers = [];
 const ctx = vm.createContext({
   // A real console has warn/error; the card uses them on its soft-failure
   // paths, so the stub must too or those paths throw under test.
@@ -37,7 +36,6 @@ const ctx = vm.createContext({
     hidden: false,
     createElement: () => new FakeHTMLElement(),
     addEventListener() {},
-    querySelector: (sel) => (sel === "home-assistant" ? app : null),
     querySelectorAll: () => [],
   },
   window: {},
@@ -47,10 +45,9 @@ const ctx = vm.createContext({
   navigator: { onLine: true, userAgent: "test-agent" },
   location: { pathname: "/central-control/weather" },
   performance: { now: () => 12000 },
-  // Captured, not run, so the guard's periodic check can be fired by hand.
-  setTimeout: () => 0,
+  // Captured, not run, so a queued error report can be inspected.
+  setTimeout: (fn) => { timers.push(fn); return timers.length; },
   clearTimeout() {},
-  setInterval: (fn) => { intervals.push(fn); return intervals.length; },
 });
 ctx.window = ctx;
 
@@ -748,45 +745,23 @@ const resilience = (async () => {
   try { Object.create(WeatherCls.prototype).setConfig({ type: "custom:ecowitt-weather-card" }); } catch (e) { badThrew = true; }
   assert("a config with no device still throws (the editor shows why)", badThrew);
 
-  /* ---- failures reach Home Assistant's log ---- */
+  /* ---- caught render errors still reach Home Assistant's log ---- */
   console.log("reporting");
-  const sent = [];
-  app.hass = { connected: true, callWS: (m) => { sent.push(m); return Promise.resolve(); } };
-  ctx.console.error("custom:ecowitt-wind-card", new Error("wind broke"));
-  const r = sent.find((m) => m.service_data.message.includes("wind broke"));
-  check("a card error is written via system_log.write", r && `${r.domain}.${r.service}`, "system_log.write");
-  check("under SunSight's logger", r && r.service_data.logger, "custom_components.sunsight.cards");
-  const n = sent.length;
-  ctx.console.error("hui-some-other-card", new Error("not ours"));
-  check("other cards' errors are left alone", sent.length, n);
-
-  let loads = 0;
-  const wrapper = {
-    localName: "hui-card",
-    config: { type: "custom:ecowitt-rain-card", device: "x" },
-    preview: false,
-    _element: { localName: "hui-error-card", _config: { type: "error", message: "hidden reason" } },
-    load() { loads++; },
-  };
-  ctx.document.querySelectorAll = () => [wrapper];
-  intervals.forEach((fn) => fn());
-  assert("a card swapped for HA's error card is reported with the hidden message",
-    sent.some((m) => m.service_data.message.includes("hidden reason")));
-  check("and rebuilt", loads, 1);
-  ctx.document.querySelectorAll = () => [];
-
-  console.log("registry swap");
-  /* Home Assistant's app bundle replaces window.customElements with a scoped
-   * registry polyfill that only knows elements defined through it. A card
-   * file that ran first must re-register there, or Lovelace reports "Custom
-   * element doesn't exist" for every card it creates afterwards. */
-  const nativeReg = ctx.customElements;
-  const scoped = { m: new Map(), get(t) { return this.m.get(t); }, define(t, c) { this.m.set(t, c); } };
-  ctx.customElements = scoped;
-  check("the replacement registry starts without the card", scoped.get("ecowitt-weather-card"), undefined);
-  intervals.forEach((fn) => fn());
-  check("and has it after the next check", scoped.get("ecowitt-weather-card"), nativeReg.get("ecowitt-weather-card"));
-  ctx.customElements = nativeReg;
+  timers.length = 0;
+  const noisy = Object.create(WeatherCls.prototype);
+  const noisyShadow = { innerHTML: "" };
+  noisy._shadow = () => noisyShadow;
+  noisy._config = { type: "custom:ecowitt-weather-card", device: wsDevice };
+  noisy._build = () => { throw new Error("render broke"); };
+  noisy.hass = hass;
+  await flush();
+  noisy.hass = hass;
+  await flush();
+  check("a repeated failure queues one report", timers.length, 1);
+  let rethrown = null;
+  try { timers[0](); } catch (e) { rethrown = e; }
+  check("which re-throws the original error for HA's frontend to log",
+    rethrown && rethrown.message, "render broke");
 })();
 
 /* ---- a container's signature is recorded only after its build ---- */

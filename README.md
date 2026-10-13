@@ -136,18 +136,15 @@ SunSight bundles a set of dependency-free Lovelace cards for Ecowitt weather
 stations — a station overview plus focused wind, rain, solar, soil and indoor
 cards. See **[docs/cards.md](docs/cards.md)**.
 
-There is nothing extra to install and no Lovelace resource to add: the
-integration serves the cards at `/sunsight/ecowitt-cards.js` and registers
-them with the frontend automatically, with a `?v=` cache-buster so an update
-can't leave a stale module behind. Registration is best-effort and never
-blocks setup — if it fails, the log says how to add the resource by hand.
+There is nothing extra to install and no resource to add by hand: the
+integration serves the cards at `/sunsight/ecowitt-cards.js` and registers them
+as a dashboard resource, the same way HACS cards load, with a `?v=`
+cache-buster so an update can't leave a stale module behind. Registration is
+best-effort and never blocks setup — if it can't (YAML-managed resources), the
+log says which resource to add.
 
-If a card shows "Configuration error", the reason is in the Home Assistant log
-(**Settings → System → Logs**, logger `custom_components.sunsight.cards`) —
-Home Assistant only shows it in edit mode, so the cards report it themselves,
-with the card version and the device/browser. They also retry a card file that
-failed to load (common when a phone app resumes before its connection is back)
-and rebuild themselves if Home Assistant swapped one for an error card.
+If a card ever fails to render, it says so on the card, and the error is in
+the Home Assistant log (**Settings → System → Logs**, from the frontend).
 
 The cards work with any entities, so SunSight's own sensors drop straight into
 the weather card as tiles:
